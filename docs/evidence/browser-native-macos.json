@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "realBrowserSkill": "0.4.0",
+  "realChrome": true,
+  "controlledLoopbackOnly": true,
+  "syntheticInputsOnly": true,
+  "prepareStartVerified": true,
+  "freshSingleUseContexts": true,
+  "fillObserved": true,
+  "clickObserved": true,
+  "finalResultObserved": true,
+  "stopReceiptValidated": true,
+  "approvals": [
+    "start",
+    "navigate",
+    "fill",
+    "click"
+  ],
+  "ownedSessionsRemaining": 0,
+  "sharedDaemonKeptRunning": true,
+  "realFeishuMessagesSent": 0
+}

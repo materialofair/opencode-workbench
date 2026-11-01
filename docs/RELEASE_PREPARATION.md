@@ -14,7 +14,7 @@
 - 飞书对话核心来自 [NeverMore93/opencode-feishu](https://github.com/NeverMore93/opencode-feishu)，固定 npm 1.10.10。已安装的该精确版本 LICENSE 与仓库保留副本在去除首尾空白后完全一致；再次核对[上游 LICENSE](https://raw.githubusercontent.com/NeverMore93/opencode-feishu/main/LICENSE)，为 MIT、Copyright 2025 NeverMore93。补丁与先前本地 helper 的来源和哈希保留；未冒称此次原创。公开的是适配补丁，不是改名后的完整上游 bundle。
 - React/React DOM 19.2.0 与 scheduler 0.27.0 的 MIT 文件字节相同，均为相同的 Meta 版权和许可；全文保存在 third-party，并写入浏览器 bundle 顶部。构建入口保持外部 Node 依赖，不打包本机依赖二进制。
 - 锁文件依赖清单共 114 项：MIT 77、Apache-2.0 9、BSD-3-Clause 11、ISC 4、`AFL-2.1 OR BSD-3-Clause` 1、`see package LICENSE` 12。最后 12 项全部是开发用可选 OpenCode 平台二进制；不随源码分发。已安装的 OpenCode CLI 1.19.5 原始许可证为 MIT。尚未逐一下载其他平台的二进制许可证，不能据元数据把它们都宣称为 MIT。若未来分发这些二进制，须另核各包许可证/NOTICE。
-- BrowserSkill 的完整再分发许可未确立，因此不复制、不依赖、不捆绑其内容。无需为当前排除该组件的源码发布扩大授权。
+- Tencent BrowserSkill 固定 0.4.0 源码已核实 MIT / Copyright (c) 2026 Tencent，保留其 LICENSE/provenance。此次只公开原创互操作工具与流程 Skill，不捆绑 CLI、扩展、图标、第三方依赖或私人适配；完整接入边界见 BROWSER_FEISHU.md。
 
 完整依赖版本/许可元数据见 [DEPENDENCIES.json](DEPENDENCIES.json)，来源说明见 [THIRD_PARTY.md](THIRD_PARTY.md)。这些是来源核对结果，不构成完整法律意见或依赖漏洞审计。
 

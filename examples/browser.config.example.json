@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "directory": "${WORKBENCH_BROWSER_PROJECT}",
+  "bskPath": "${BSK_BINARY}",
+  "browser": "explicit-instance-id-or-unique-browser-label",
+  "allowedOrigins": ["https://example.com"],
+  "actions": ["navigate"]
+}

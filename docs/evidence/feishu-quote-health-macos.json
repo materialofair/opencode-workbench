@@ -1,0 +1,12 @@
+{
+  "botIdentityReadSucceeded": true,
+  "gatewayInitialized": true,
+  "quoteCacheFailure": false,
+  "errors": 0,
+  "configurationAndOtherComponentsUnchanged": true,
+  "quoteOnlyFixLoadedAfterIdleRestart": true,
+  "realUserReplyRetest": "pending",
+  "newScopesRequired": false,
+  "rawWebsocketEventRetained": false,
+  "realFeishuMessagesSentByThisTest": 0
+}

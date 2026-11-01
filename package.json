@@ -7,7 +7,8 @@
   "license": "MIT",
   "exports": {
     ".": "./dist/plugin.js",
-    "./feishu": "./adapters/feishu/plugin.js"
+    "./feishu": "./adapters/feishu/plugin.js",
+    "./browser": "./adapters/browser/plugin.js"
   },
   "scripts": {
     "build": "bun scripts/build.ts",
@@ -17,7 +18,8 @@
     "scan": "bun scripts/scan.ts",
     "scan:release": "bun scripts/release-audit.ts",
     "test:integration": "bun scripts/integration.ts",
-    "prepare:feishu": "bun scripts/prepare-feishu.ts"
+    "prepare:feishu": "bun scripts/prepare-feishu.ts",
+    "test:browser-chain": "bun scripts/browser-fixture-build.ts && node .data/browser-chain.js"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.19.5",

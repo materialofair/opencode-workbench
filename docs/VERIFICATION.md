@@ -42,7 +42,7 @@
 
 `bun run scan` 对可公开源码、补丁、文档及构建产物扫描，结果无命中。排除项明确为 Git、node_modules、本机安装包装器 `.opencode`、`.data`、artifacts 和日志/运行数据；发布时它们也应保持排除。`bun run scan:release` 另检查完整 Git 对象库、历史路径及提交元数据。扫描为启发式，不能代替人工审查；公开范围见 [发布准备](RELEASE_PREPARATION.md)。不发布 npm。
 
-飞书来源为 NeverMore93/opencode-feishu 1.10.10，MIT，原始版权声明已保留；上游、本地适配和 helper 的哈希已记录。BrowserSkill 不复制或再分发。
+飞书来源为 NeverMore93/opencode-feishu 1.10.10，MIT，原始版权声明已保留；上游、本地适配和 helper 的哈希已记录。BrowserSkill 0.4.0 固定源码为 MIT / Tencent 2026，保留声明；公开原创互操作工具，不复制本机私人 Skill 或打包二进制/扩展。
 
 ## 现用 Desktop 验收
 
@@ -62,3 +62,14 @@
 - 宿主自动审批模式、第三方工具绕过权限或恶意本机进程不由本插件提供独立沙箱。npm audit 原有告警已限定升级并在干净安装验证为 0，详见 [逐项核查](DEPENDENCY_SECURITY.md)；完整依赖安全审计、外部渗透测试与大规模长期运行尚未完成。
 
 当前预览不支持任意 cron、远端管理、内置审批、自动飞书推送、凭据管理、历史自动归档、多机部署或设备唤醒。这些不是已实现功能。
+
+
+## 浏览器整链与引用回归
+
+本次新增验证：
+
+- [真实 Mac BrowserSkill/Chrome 证据](evidence/browser-native-macos.json)：0.4.0 CLI/daemon/extension，受控 loopback 页面，prepare/start、导航、sync、合成值填入、新 context 点击、结果读取、stop；剩余 session 0，未停止共享 daemon。
+- [隔离整链证据](evidence/browser-chain-macos.json)：真实 OpenCode 1.19.5 + Node 无头 Chromium；飞书 SDK 和 BrowserSkill CLI 是隔离协议替身，无真实凭据、真实飞书消息或云模型。引用卡片正文进入 OpenCode；4 次原生审批经模拟飞书卡片回调，仅向原映射目标返回核对后的正文；会话清理完成。复现命令 `bun run build && bun run test:browser-chain`（先独立安装 Playwright Chromium）。
+- 核心回归涵盖精确 owner/tab/context、拒绝不重放、人工 hold、用户停止、来源限制、失败清理仍可见、原生数字 tab/unchanged observation、可逆安装、直接父消息、嵌套卡片行、引用权限失败/删除/跨 chat/循环、缓存重启与 TTL。
+
+真实用户会话的最小只读排查确认 REST 现有权限足够，历史 CardKit 消息返回客户端占位；没有留存原始 WS 事件，因此不将 REST 结果描述为原始事件抓包。[现用引用修复加载记录](evidence/feishu-quote-health-macos.json)：备份后仅施加引用补丁，确认无活动工作/任务后正常重启，网关与身份读取成功、其他配置哈希不变；真实新发引用验收仍待用户测试；历史占位消息不会从相邻会话推断还原。

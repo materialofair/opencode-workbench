@@ -1,0 +1,26 @@
+{
+  "version": "1.19.5",
+  "realOpenCode": true,
+  "realHeadlessChromium": true,
+  "feishuTransport": "in-memory SDK mock",
+  "browserSkillTransport": "test-only CLI protocol fixture",
+  "realCredentialsUsed": false,
+  "realFeishuMessagesSent": 0,
+  "quotedCardTextObserved": true,
+  "nativePermissionCards": 4,
+  "modelRequests": 9,
+  "browserActions": [
+    "start",
+    "navigate",
+    "sync",
+    "fill",
+    "sync",
+    "click",
+    "sync",
+    "stop"
+  ],
+  "ownedSessionsRemaining": 0,
+  "feishuResultObserved": true,
+  "originalMappedDestinationOnly": true,
+  "success": true
+}

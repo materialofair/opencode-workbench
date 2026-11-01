@@ -68,7 +68,7 @@ bun run demo
 
 飞书对话能力来自 **[NeverMore93/opencode-feishu](https://github.com/NeverMore93/opencode-feishu)**，固定 `1.10.10`，MIT；本项目不宣称这部分为原创。保留了 [原始许可证](third-party/opencode-feishu/LICENSE)、[来源哈希](third-party/opencode-feishu/provenance.json) 与本地 Desktop 适配补丁。
 
-可选入口、安装迁移、隐私和测试范围见 [飞书适配说明](docs/FEISHU.md)。现有飞书连接用户只安装任务管理器即可；不要同时启用两个相同机器人入口。BrowserSkill 不作为依赖或复制进本仓库，保持其现有独立安装与许可边界。
+可选入口、安装迁移、隐私和测试范围见 [飞书适配说明](docs/FEISHU.md)。现有飞书连接用户只安装任务管理器即可；不要同时启用两个相同机器人入口。可选的 [飞书到浏览器整链接入](docs/BROWSER_FEISHU.md) 提供项目专属工具、审批和原创流程 Skill；BrowserSkill 0.4.0 需独立安装，不打包 CLI/扩展或本机私人适配。
 
 ## 升级、卸载和数据
 

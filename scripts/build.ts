@@ -14,3 +14,6 @@ if(!uiTest.success){console.error(uiTest.logs);process.exit(1);}
 
 const feishu=await Bun.build({entrypoints:['adapters/feishu/plugin.ts'],outdir:'adapters/feishu',target:'node',packages:'external'});
 if(!feishu.success){console.error(feishu.logs);process.exit(1);}
+
+const browser=await Bun.build({entrypoints:['adapters/browser/plugin.ts'],outdir:'adapters/browser',target:'node',packages:'external'});
+if(!browser.success){console.error(browser.logs);process.exit(1);}

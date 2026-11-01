@@ -10,7 +10,7 @@
 | React / react-dom | 19.2.0 | MIT | 构建页面；许可证保留于 third-party 及构建 bundle 的 legal comments |
 | Bun（运行时） | 本机 1.2.18 | MIT 为主，含所带第三方声明 | 外部运行时，不捆绑其二进制 |
 | Playwright / TypeScript（开发） | lockfile | Apache-2.0 | 开发依赖，不作为本机常驻组件 |
-| BrowserSkill | 本机独立安装 | 此次未确立完整再分发许可 | 排除，不复制或捆绑 |
+| Tencent BrowserSkill | 0.4.0 / 7e300ff6 | MIT, Copyright (c) 2026 Tencent | 保留固定版本许可证；原创互操作适配，不捆绑二进制/扩展/第三方资产 |
 
 实际直接/间接 npm 依赖版本与许可元数据见 `DEPENDENCIES.json`，由已锁定的 package-lock.json 生成。最终分发依赖时仍须附带各包自己的许可证和必要 NOTICE。可选飞书包含 Lark SDK、OpenTelemetry、zod、代理等上游依赖，不能把整个依赖树统称为本项目 MIT 原创。
 

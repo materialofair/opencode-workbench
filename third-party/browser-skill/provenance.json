@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/Tencent/BrowserSkill",
+  "version": "0.4.0",
+  "tags": [
+    "cli-v0.4.0",
+    "ext-v0.4.0",
+    "dsh-plugin-v0.4.0"
+  ],
+  "commit": "7e300ff6a35b326ac9abd03f315f30769ad01861",
+  "license": "MIT",
+  "copyright": "2026 Tencent",
+  "distribution": "CLI interoperability adapter and original workflow guidance only; no BrowserSkill binary, extension, icons, third-party dependencies or local private skill overrides are bundled."
+}

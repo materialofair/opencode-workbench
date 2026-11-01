@@ -12,6 +12,10 @@ export const FeishuDesktop:Plugin=async ctx=>{
   if(typeof parsed.directory!=='string' || !parsed.directory.trim())throw new Error('Feishu adapter requires an explicit owner directory to avoid duplicate gateway connections');
   const owner=expandOwnerDirectory(parsed.directory);
   if(directoryKey(realpathSync(owner))!==directoryKey(realpathSync(ctx.directory)))return {};
+  const browserConfig=process.env.OPENCODE_WORKBENCH_BROWSER_CONFIG||join(ctx.directory,'.opencode','workbench-browser.json');
+  if(existsSync(browserConfig)&&JSON.parse(readFileSync(browserConfig,'utf8')).enabled===true){
+    if(!Array.isArray(parsed.allowedSenderIDs)||!parsed.allowedSenderIDs.length||!Array.isArray(parsed.allowedChatIDs)||!parsed.allowedChatIDs.length)throw new Error('Feishu browser projects require explicit allowedSenderIDs and allowedChatIDs in the private bot configuration');
+  }
   const built=fileURLToPath(new URL('../../.data/feishu/dist/index.desktop.js',import.meta.url));
   if(!existsSync(built))throw new Error('Run bun scripts/prepare-feishu.ts before enabling the Feishu adapter');
   const module=await import(pathToFileURL(built).href);return module.FeishuPlugin(ctx);
