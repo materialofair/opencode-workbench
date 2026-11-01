@@ -1,0 +1,10 @@
+{
+  "package": "opencode-feishu",
+  "version": "1.10.10",
+  "repository": "https://github.com/NeverMore93/opencode-feishu",
+  "license": "MIT",
+  "author": "NeverMore93",
+  "upstreamBundleSha256": "afc5224bc726394afb87eec0b0645f6070a8f2e9fb6e5e2397636c5e49973e95",
+  "localAdaptedBundleSha256": "a043368c5e55e38d2c33009fb174909987306c5b1b5e8a55661153fc38285f49",
+  "compactMarkdownSha256": "7a02f9d876d0a459782a63dacbcce05d38e5832896c6d6aacbbde39683ea3f9d"
+}

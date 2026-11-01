@@ -1,0 +1,17 @@
+# 第三方声明
+
+原创任务管理器、React 页面、Skill、测试、文档与新适配包装器建议采用根目录 MIT。正式公开前维护者应确认版权署名。
+
+| 组件 | 固定版本 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| NeverMore93/opencode-feishu | 1.10.10 | MIT，Copyright 2025 NeverMore93 | 可选依赖；保留原始 LICENSE、来源哈希及独立适配补丁 |
+| @opencode-ai/plugin / sdk | 1.19.5 | MIT | 依赖注入与类型，使用原始 npm 包 |
+| OpenCode CLI（测试） | 1.19.5 | MIT | 开发依赖，隔离后端测试；不分发本机二进制 |
+| React / react-dom | 19.2.0 | MIT | 构建页面；许可证保留于 third-party 及构建 bundle 的 legal comments |
+| Bun（运行时） | 本机 1.2.18 | MIT 为主，含所带第三方声明 | 外部运行时，不捆绑其二进制 |
+| Playwright / TypeScript（开发） | lockfile | Apache-2.0 | 开发依赖，不作为本机常驻组件 |
+| BrowserSkill | 本机独立安装 | 此次未确立完整再分发许可 | 排除，不复制或捆绑 |
+
+实际直接/间接 npm 依赖版本与许可元数据见 `DEPENDENCIES.json`，由已锁定的 package-lock.json 生成。最终分发依赖时仍须附带各包自己的许可证和必要 NOTICE。可选飞书包含 Lark SDK、OpenTelemetry、zod、代理等上游依赖，不能把整个依赖树统称为本项目 MIT 原创。
+
+本机既有 Desktop loader 和 compact Markdown helper 按用户授权的旧适配整理，不包含真实配置、模型定义、用户会话、日志、机器人标识或凭据。上游链接和许可证必须随补丁保留。不得把上游主要功能改名后冒称原创。

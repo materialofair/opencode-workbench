@@ -1,0 +1,46 @@
+{
+  "version": "1.19.5",
+  "isolated": true,
+  "usesRealCredentials": false,
+  "model": "loopback fixture",
+  "feishuMessagesSent": 0,
+  "pluginLoaded": true,
+  "sessionPermissions": [
+    {
+      "permission": "*",
+      "pattern": "*",
+      "action": "ask"
+    },
+    {
+      "permission": "edit",
+      "pattern": "*",
+      "action": "deny"
+    },
+    {
+      "permission": "question",
+      "pattern": "*",
+      "action": "deny"
+    },
+    {
+      "permission": "plan_enter",
+      "pattern": "*",
+      "action": "deny"
+    },
+    {
+      "permission": "plan_exit",
+      "pattern": "*",
+      "action": "deny"
+    },
+    {
+      "permission": "edit",
+      "pattern": "*",
+      "action": "deny"
+    }
+  ],
+  "completionStatus": "succeeded",
+  "approvalStatus": "waiting_approval",
+  "cancelStatus": "interrupted",
+  "restartRecoveredStatus": "succeeded",
+  "modelRequests": 2,
+  "success": true
+}

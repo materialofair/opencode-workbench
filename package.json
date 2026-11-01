@@ -1,0 +1,38 @@
+{
+  "name": "opencode-workbench-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local scheduled tasks and optional Feishu integration for OpenCode",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/plugin.ts",
+    "./feishu": "./adapters/feishu/plugin.ts"
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test tests",
+    "demo": "bun scripts/demo.ts",
+    "scan": "bun scripts/scan.ts",
+    "test:integration": "bun scripts/integration.ts",
+    "prepare:feishu": "bun scripts/prepare-feishu.ts"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.19.5",
+    "@opencode-ai/sdk": "1.19.5",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "5.9.3",
+    "@playwright/test": "1.56.1",
+    "opencode-ai": "1.19.5"
+  },
+  "optionalDependencies": {
+    "opencode-feishu": "1.10.10"
+  }
+}

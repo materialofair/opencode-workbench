@@ -1,0 +1,15 @@
+node_modules/
+.data/
+artifacts/
+test-results/
+playwright-report/
+.env
+.env.*
+*.db
+*.db-*
+*.sqlite*
+*.log
+.DS_Store
+*.tgz
+
+.opencode/

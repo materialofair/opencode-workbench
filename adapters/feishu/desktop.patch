@@ -1,0 +1,325 @@
+--- index.js
++++ index.desktop.js
+@@ -1,4 +1,5 @@
+-import { readFileSync, existsSync } from 'fs';
++import { cleanMarkdown as compactCleanMarkdown, splitMarkdownPages } from './compact-markdown.mjs';
++import { readFileSync, existsSync, realpathSync } from 'fs';
+ import { join } from 'path';
+ import { fileURLToPath } from 'url';
+ import { homedir } from 'os';
+@@ -44,7 +45,8 @@
+   /** idle 催促子配置。 */
+   nudge: NudgeSchema.default(() => NudgeSchema.parse({})),
+   /** OpenCode 工作目录，可在启动阶段进一步展开。 */
+-  directory: z.string().optional()
++  directory: z.string().optional(),
++  model: z.object({ providerID: z.string(), modelID: z.string() }).optional()
+ });
+ 
+ // src/feishu/cardkit.ts
+@@ -2356,11 +2358,11 @@
+     loggerLevel: logLevelMap[config.logLevel] ?? Lark.LoggerLevel.info,
+     logger: {
+       // 飞书 SDK 的不同级别统一桥接到项目日志系统。
+-      error: (...msg) => log("error", "[lark.ws]", { msg }),
+-      warn: (...msg) => log("warn", "[lark.ws]", { msg }),
+-      info: (...msg) => log("info", "[lark.ws]", { msg }),
+-      debug: (...msg) => log("info", "[lark.ws]", { msg }),
+-      trace: (...msg) => log("info", "[lark.ws]", { msg })
++      error: () => log("error", "[lark.ws] error; details withheld"),
++      warn: () => log("warn", "[lark.ws] warn; details withheld"),
++      info: () => log("info", "[lark.ws] info; details withheld"),
++      debug: () => log("info", "[lark.ws] debug; details withheld"),
++      trace: () => log("info", "[lark.ws] trace; details withheld")
+     }
+   });
+   wsClient.start({ eventDispatcher: dispatcher });
+@@ -3053,17 +3055,7 @@
+ var TRUNCATION_SUFFIX_BYTES = new TextEncoder().encode(TRUNCATION_SUFFIX).length;
+ var CODE_FENCE_BYTES = 4;
+ var HTML_TAG_RE = /<\/?\w+(?:\s[^>]*)?\/?>/g;
+-function cleanMarkdown(text) {
+-  let result = text.replace(/<br\s*\/?>/gi, "\n");
+-  result = closeCodeBlocks(result);
+-  const { segments, codeBlocks } = extractCodeBlocks(result);
+-  result = segments.reduce((acc, seg, idx) => {
+-    const cleanedSegment = seg.replace(HTML_TAG_RE, "");
+-    return acc + cleanedSegment + (codeBlocks[idx] ?? "");
+-  }, "");
+-  result = closeCodeBlocks(result);
+-  return result;
+-}
++function cleanMarkdown(text) { return compactCleanMarkdown(text); }
+ function truncateMarkdown(text, limit = MAX_CARD_BYTES) {
+   const bytes = new TextEncoder().encode(text);
+   if (bytes.length <= limit) return text;
+@@ -3220,39 +3212,18 @@
+   };
+ }
+ function buildReplyCardSchema(view) {
+-  const elements = [
+-    buildMarkdownElement(STATUS_ELEMENT_ID, buildStatusMarkdown(view.compactStatus))
+-  ];
+-  const sessionMarkdown = buildSessionMarkdown(view.sessionId);
+-  if (sessionMarkdown) {
+-    elements.push(buildMarkdownElement(SESSION_ELEMENT_ID, sessionMarkdown));
+-  }
++  const elements = [];
++  if (view.terminalState !== "completed") elements.push(buildMarkdownElement(STATUS_ELEMENT_ID, buildStatusMarkdown(view.compactStatus)));
+   elements.push(buildMarkdownElement(REPLY_ELEMENT_ID, buildReplyMarkdown(view.replyText)));
+-  const detailsElement = buildDetailsElement(view.detailsMarkdown);
+-  if (detailsElement) elements.push(detailsElement);
+-  const actionsElement = buildActionsElement(view.actions);
+-  if (actionsElement) elements.push(actionsElement);
+-  return {
+-    data: {
+-      schema: "2.0",
+-      config: {
+-        streaming_mode: true,
+-        wide_screen_mode: true
+-      },
+-      header: {
+-        title: { tag: "plain_text", content: view.title.trim() || DEFAULT_TITLE },
+-        template: view.headerTemplate
+-      },
+-      body: {
+-        elements
+-      }
+-    }
+-  };
+-}
+-function buildStatusMarkdown(status) {
+-  return `**\u72B6\u6001**
+-${status.trim()}`;
+-}
++  const details = buildDetailsElement(view.detailsMarkdown);
++  if (details) elements.push(details);
++  const actions = buildActionsElement(view.terminalState ? [] : view.actions);
++  if (actions) elements.push(actions);
++  const schema = {data:{schema:"2.0",config:{streaming_mode:!view.terminalState,wide_screen_mode:true},body:{elements}}};
++  if (new TextEncoder().encode(JSON.stringify(schema.data)).length > 28 * 1024) throw new Error("Reply card exceeds safe total byte budget");
++  return schema;
++}
++function buildStatusMarkdown(status) { return status.trim(); }
+ function buildSessionMarkdown(sessionId) {
+   const normalized = (sessionId ?? "").trim();
+   if (!normalized) return void 0;
+@@ -3263,7 +3234,7 @@
+   return normalizeBlockMarkdown(replyText) || EMPTY_REPLY_PLACEHOLDER;
+ }
+ function buildDetailsElement(detailsMarkdown) {
+-  const content = normalizeBlockMarkdown(detailsMarkdown ?? "");
++  const content = truncateMarkdown(normalizeBlockMarkdown(detailsMarkdown ?? ""), 4000);
+   if (!content) return void 0;
+   return {
+     tag: "collapsible_panel",
+@@ -3302,21 +3273,8 @@
+   };
+ }
+ function buildSimpleFallbackText(view) {
+-  const sections = [
+-    `\u3010${view.title.trim() || DEFAULT_TITLE}\u3011`,
+-    `\u72B6\u6001\uFF1A${view.compactStatus}`,
+-    view.sessionId ? `\u4F1A\u8BDDID\uFF1A${view.sessionId}` : "",
+-    normalizeBlockMarkdown(view.replyText) || EMPTY_REPLY_PLACEHOLDER
+-  ].filter(Boolean);
+-  const details = normalizeBlockMarkdown(view.detailsMarkdown ?? "");
+-  if (details) {
+-    sections.push(`\u8BE6\u7EC6\u6B65\u9AA4\uFF1A
+-${details}`);
+-  }
+-  if (view.terminalState) {
+-    sections.push(`\u7EC8\u6001\uFF1A${buildCompactStatus(view.terminalState)}`);
+-  }
+-  return truncateMarkdown(cleanMarkdown(sections.join("\n\n")));
++  const body = cleanMarkdown(view.replyText ?? "");
++  return view.terminalState === "completed" ? body : [view.compactStatus, body].filter(Boolean).join("\n\n");
+ }
+ function buildMarkdownElement(elementId, content) {
+   return {
+@@ -3326,7 +3284,7 @@
+   };
+ }
+ function normalizeBlockMarkdown(content) {
+-  const cleaned = cleanMarkdown(content).replace(/\r/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
++  const cleaned = cleanMarkdown(content).trim();
+   return cleaned ? truncateMarkdown(cleaned) : "";
+ }
+ function formatPhaseIcon(status) {
+@@ -3476,9 +3434,10 @@
+       this.closed = true;
+       return;
+     }
+-    if (finalReply) {
+-      this.replyText = finalReply;
+-    }
++    const finalPages = splitMarkdownPages(cleanMarkdown(finalReply || this.replyText));
++    this.finalizing = true;
++    this.replyText = finalPages[0].text;
++    this.continuationMessageIds = [];
+     this.flushReplyTimer();
+     await this.drain();
+     if (this.degraded) {
+@@ -3499,6 +3458,13 @@
+         cardId: this.cardId,
+         error: err instanceof Error ? err.message : String(err)
+       });
++    }
++    for (let i = 1; i < finalPages.length; i++) {
++      const view = createReplyCardView({title:"",replyText:finalPages[i].text,state:"completed",terminalState:"completed",actions:[]});
++      const cardId = await this.cardkit.createCard(buildReplyCardSchema(view));
++      const sent = await sendCardMessage(this.feishuClient,this.chatId,cardId,this.log);
++      if (!sent.ok || !sent.messageId) throw new Error("Continuation card delivery failed");
++      this.continuationMessageIds.push(sent.messageId);
+     }
+     this.closed = true;
+   }
+@@ -3521,8 +3487,8 @@
+       clearTimeout(this.replyTimer);
+       this.replyTimer = null;
+     }
+-    if (this.messageId) {
+-      await deleteMessage(this.feishuClient, this.messageId, this.log);
++    for (const messageId of [this.messageId,...(this.continuationMessageIds ?? [])].filter(Boolean)) {
++      await deleteMessage(this.feishuClient, messageId, this.log);
+     }
+   }
+   /**
+@@ -3534,13 +3500,11 @@
+    * 的 experimental_throttle(50ms) 思路一致，但更宽松以适配服务端 API。
+    */
+   scheduleReplyRender() {
+-    if (this.replyTimer) {
+-      clearTimeout(this.replyTimer);
+-    }
++    if (this.replyTimer) return;
+     this.replyTimer = setTimeout(() => {
+       this.replyTimer = null;
+       this.enqueue(() => this.renderReply());
+-    }, 200);
++    }, 650);
+   }
+   /**
+    * 立即 flush 挂起的 debounce 定时器（close/drain 前调用）。
+@@ -3579,6 +3543,10 @@
+   }
+   async renderStatusAndActions() {
+     if (!this.cardId) return;
++    if (this.terminalState === "completed") {
++      if (!this.statusRemoved) { await this.cardkit.deleteElement(this.cardId, STATUS_ELEMENT_ID, ++this.seq); this.statusRemoved = true; }
++      await this.renderActions(); return;
++    }
+     const status = buildStatusMarkdown(buildCompactStatus(this.runState));
+     if (this.rendered.status !== status) {
+       this.rendered.status = status;
+@@ -3588,7 +3556,9 @@
+   }
+   async renderReply() {
+     if (!this.cardId) return;
+-    const content = buildReplyMarkdown(this.replyText);
++    const pages = splitMarkdownPages(cleanMarkdown(this.replyText));
++    const preview = this.finalizing ? this.replyText : pages[0].text + (pages.length > 1 ? "\n\n_更多内容将在完成后继续显示…_" : "");
++    const content = buildReplyMarkdown(preview);
+     if (this.rendered.replyText === content) return;
+     this.rendered.replyText = content;
+     await this.cardkit.updateElement(this.cardId, REPLY_ELEMENT_ID, content, ++this.seq);
+@@ -3839,7 +3809,8 @@
+     detailsMarkdown,
+     fallbackMode: "simple"
+   });
+-  await replyOrUpdate(feishuClient, chatId, fallbackPlaceholderId, buildSimpleFallbackText(view), log);
++  const textPages = splitMarkdownPages(buildSimpleFallbackText(view), 6000);
++  for (let i = 0; i < textPages.length; i++) await replyOrUpdate(feishuClient, chatId, i === 0 ? fallbackPlaceholderId : "", textPages[i].text, log);
+ }
+ function mergeAbortSignals(signals) {
+   const activeSignals = signals.filter((item) => !!item);
+@@ -3911,7 +3882,7 @@
+     content,
+     parts
+   });
+-  const baseBody = { parts };
++  const baseBody = { parts, ...(config.model ? { model: config.model } : {}) };
+   const replyTitle = deriveReplyTitleFromParts(parts);
+   if (!shouldReply) {
+     try {
+@@ -4897,16 +4868,25 @@
+     }
+     throw e;
+   }
++  // A global plugin is instantiated for each directory. Only the selected
++  // desktop project owns the Feishu connection and its session event hooks.
++  if (!resolvedConfig.directory || !ctx.directory ||
++      realpathSync(resolvedConfig.directory) !== realpathSync(ctx.directory)) return {};
+   initDedup(resolvedConfig.dedupTtl);
+   const larkClient = new Lark.Client({
+     appId: resolvedConfig.appId,
+     appSecret: resolvedConfig.appSecret,
+     domain: Lark.Domain.Feishu,
+-    appType: Lark.AppType.SelfBuild
++    appType: Lark.AppType.SelfBuild,
++    logger: {
++      error: () => log("error", "Feishu SDK request failed; details withheld"),
++      warn: () => log("warn", "Feishu SDK warning; details withheld"),
++      info: () => {}, debug: () => {}, trace: () => {}
++    }
+   });
+   const cardkit = new CardKitClient(larkClient, log);
+   const botOpenId = await fetchBotOpenId(larkClient, log);
+-  const v2Client = createOpencodeClient({ directory: resolvedConfig.directory || void 0 });
++  const v2Client = createOpencodeClient(buildDesktopClientConfig(ctx, resolvedConfig.directory));
+   const interactiveDeps = { feishuClient: larkClient, log, v2Client };
+   gateway = startFeishuGateway({
+     config: resolvedConfig,
+@@ -4949,6 +4929,11 @@
+     botOpenId
+   });
+   const hooks = {
++    dispose: async () => {
++      const current = gateway;
++      gateway = null;
++      current?.stop();
++    },
+     event: async ({ event }) => {
+       if (!gateway) return;
+       await handleEvent(event, { log, directory: resolvedConfig.directory, client, nudge: resolvedConfig.nudge });
+@@ -4986,19 +4971,6 @@
+         model: model ? `${model.providerID}/${model.modelID}` : "unknown"
+       });
+     },
+-    // permission.ask：飞书会话中自动放行 read 权限（用户已通过飞书认证，读文件风险低）
+-    // write/execute 等高危权限保持默认 ask 行为，交互卡片正常弹出
+-    // input 类型为 Plugin SDK Permission，不含 sessionID，通过 as any 安全提取（SDK 类型定义限制）
+-    "permission.ask": async (input, output) => {
+-      if (!gateway) return;
+-      const sessionID = input.sessionID;
+-      if (!sessionID || !getChatIdBySession(sessionID)) return;
+-      const permission = input.permission;
+-      if (permission === "read") {
+-        output.status = "allow";
+-        log("info", "\u98DE\u4E66\u4F1A\u8BDD\u81EA\u52A8\u6388\u6743 read \u6743\u9650", { sessionId: sessionID });
+-      }
+-    },
+     // tool.execute.after：工具执行完成后记录日志（tool 名/sessionId/callID），飞书侧可据此排查工具调用问题
+     // 仅在飞书会话中生效；其他渠道早期 return
+     "tool.execute.after": async (input, _output) => {
+@@ -5074,4 +5046,19 @@
+ 
+ export { FeishuPlugin };
+ //# sourceMappingURL=index.js.map
+-//# sourceMappingURL=index.js.map
++//# sourceMappingURL=index.js.map
++// Desktop adapter: credentials remain in process memory; never persist them.
++function buildDesktopClientConfig(ctx, directory, env = process.env) {
++  const baseUrl = ctx.serverUrl?.toString();
++  if (!baseUrl) throw new Error('OpenCode did not provide its backend URL');
++  const url = new URL(baseUrl);
++  if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
++    throw new Error('This adapter only supports a local desktop backend');
++  const password = env.OPENCODE_SERVER_PASSWORD;
++  const username = env.OPENCODE_SERVER_USERNAME ?? 'opencode';
++  return {
++    baseUrl,
++    directory: directory || undefined,
++    ...(password ? { headers: { Authorization: 'Basic ' + Buffer.from(username + ':' + password).toString('base64') } } : {})
++  };
++}
