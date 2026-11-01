@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "scope": "Synthetic migration fixtures only; existing local tasks were inspected read-only and were not imported or executed",
+  "platform": "macOS",
+  "runtime": {
+    "node": "25.9.0",
+    "bun": "1.2.18"
+  },
+  "checks": {
+    "typecheck": "passed",
+    "build": "passed",
+    "bunSuite": {
+      "passed": 50,
+      "skipped": 1,
+      "failed": 0,
+      "assertions": 280
+    },
+    "pythonCollectorScenarios": 6,
+    "skillValidation": "passed",
+    "sensitiveWorkspaceFindings": 0,
+    "sensitiveGitAndWorkingTreeFindings": 0
+  },
+  "verified": [
+    "Dry-run writes no tasks and returns no prompts",
+    "Imports are disabled and cannot dispatch before executor selection",
+    "Stable source identity, changed-source conflicts, cross-source semantic duplicates and deleted-task tombstones",
+    "Stale preview rejection and SQLite rollback of tasks plus identity ledger",
+    "Idempotent commit and retry after reopening the database",
+    "Windows drive, UNC, case and Unicode project path normalization",
+    "Direct cron parsing and conservative blockers for shell, launchd and Windows execution context",
+    "Collector read-only source selection, private output and no-overwrite behavior",
+    "Compiled Node tool registration, default dry-run, commit and retry",
+    "HTTP authentication, CSRF and foreign-origin rejection",
+    "Headless browser import preview, disabled commit, provenance and executor acknowledgement",
+    "Installer dry-run, reversible skill/script installation and foreign-file preservation"
+  ],
+  "limitations": [
+    "No native Windows execution was performed; Windows ACL test skipped on macOS and CI matrix now includes importer and collector tests",
+    "Crontab inventory was denied by the environment with EPERM; cron source coverage remains unknown",
+    "Actual source project ownership and task intent were not inferred from hashed Workbench directories",
+    "Independent npm ci populated locked packages but remained pending on registry metadata and was terminated; full suite passed against those local dependencies, but clean-install completion is not claimed",
+    "No actual user task, global plugin configuration, scheduler or persistent permission setting was changed; no push or merge"
+  ],
+  "phase": "Pre-integration branch snapshot; see the final merged commit and CI for combined verification"
+}

@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "scope": "Combined importer/browser/Feishu/scheduler tests with synthetic task data only",
+  "platform": "macOS",
+  "bunSuite": {
+    "passed": 50,
+    "skipped": 1,
+    "failed": 0
+  },
+  "pythonCollectorScenarios": 6,
+  "dependencyAuditVulnerabilities": 0,
+  "realOpenCodeSchedulerIntegration": {
+    "version": "1.19.5",
+    "completion": "succeeded",
+    "approval": "waiting_approval",
+    "cancel": "interrupted",
+    "restartRecovery": "succeeded",
+    "modelRequests": 2
+  },
+  "browserChain": {
+    "realOpenCode": true,
+    "realHeadlessChromium": true,
+    "feishuTransport": "in-memory SDK mock",
+    "browserSkillTransport": "test-only CLI fixture",
+    "nativeApprovalCards": 4,
+    "verifiedResultDeliveredToMappedTarget": true,
+    "ownedSessionsRemaining": 0
+  },
+  "legacyHostUiCompatibility": true,
+  "realSourceJobsImported": 0,
+  "sourceSchedulersModified": false,
+  "crontabInventory": "EPERM denied; unknown, not scanned",
+  "privateAuthorMetadataExcludedFromPublishedLineage": true,
+  "ci": "Verify the exact published commit separately"
+}

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type { Engine } from './engine';
 import {createServer} from 'node:http';
 import {readFileSync} from 'node:fs';
+import {previewImport,applyImport} from './import-tasks';
 const assets = new URL('../public/',import.meta.url);
 const sharedHeaders = { 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff', 'Referrer-Policy':'no-referrer', 'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'", 'Cross-Origin-Resource-Policy':'same-origin', 'X-Frame-Options':'DENY' };
 function equal(a:string,b:string) { const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length && timingSafeEqual(x,y); }
@@ -10,7 +11,7 @@ async function body(req:Request) {
   const reader=req.body?.getReader(); if(!reader) throw new Error('缺少请求内容');
   let size=0;const chunks:Uint8Array[]=[];
   while(true) { const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>65536){await reader.cancel();throw new Error('请求内容过大');}chunks.push(r.value); }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new Error('Invalid JSON request');}
 }
 export async function startServer(engine:Engine, directory:string, demo=false) {
   const token=randomBytes(32).toString('base64url');
@@ -26,7 +27,9 @@ export async function startServer(engine:Engine, directory:string, demo=false) {
         if(!equal(req.headers.get('authorization')??'',`Bearer ${token}`)) return json({error:'页面授权已失效，请重新对 OpenCode 说“打开定时任务管理”'},401);
         if(req.method!=='GET' && (suppliedOrigin!==origin || !equal(req.headers.get('x-task-csrf')??'',token))) return json({error:'CSRF rejected'},403);
         try {
-          if(u.pathname==='/api/state' && req.method==='GET') return json({tasks:engine.store.tasks(),runs:engine.store.runs(),directory,leader:engine.leader,demo,concurrency:engine.concurrency,now:Date.now(),lifecycle:'调度随此 OpenCode 后端运行。真正退出、休眠、关机时不能准点执行。'});
+          if(u.pathname==='/api/state' && req.method==='GET') return json({tasks:engine.store.tasks(),runs:engine.store.runs(),directory,capabilities:{importTasks:true},leader:engine.leader,demo,concurrency:engine.concurrency,now:Date.now(),lifecycle:'调度随此 OpenCode 后端运行。真正退出、休眠、关机时不能准点执行。'});
+          if(u.pathname==='/api/import/preview' && req.method==='POST')return json(previewImport(engine.store,directory,await body(req)));
+          if(u.pathname==='/api/import/apply' && req.method==='POST'){const v=await body(req);return json(applyImport(engine.store,directory,v.manifest,v.preview),201);}
           if(u.pathname==='/api/tasks' && req.method==='POST') { const v=await body(req);return json(engine.store.save(v),201); }
           const match=u.pathname.match(/^\/api\/tasks\/([a-f0-9-]+)(\/run)?$/);
           if(match) {

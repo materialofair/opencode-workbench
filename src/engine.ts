@@ -63,6 +63,7 @@ export class Engine {
   runNow(id:string,key:string) {
     if(this.stopped || !this.store.lease(this.owner,this.now())) throw new Error('另一个 OpenCode 进程拥有调度器，请在该进程管理');
     const t=this.store.task(id); if(!t) throw new Error('任务不存在');
+    if(t.origin?.executor==='unassigned')throw new Error('导入任务尚未选择执行者；请先编辑并明确启用 Workbench 调度');
     const existing=this.store.runs().find(r=>r.taskID===id && r.slot===`manual:${key}`); if(existing) return existing;
     return this.store.db.transaction(()=>this.enqueue(t,`manual:${key}`))();
   }

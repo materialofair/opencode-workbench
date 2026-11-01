@@ -4,7 +4,9 @@ test('installer is dry-run by default, reversible and refuses foreign files befo
   const run=async(...args:string[])=>{const p=Bun.spawn([process.execPath,'scripts/install.ts','--project',root,...args],{stdout:'pipe',stderr:'pipe'});await new Response(p.stdout).text();await new Response(p.stderr).text();return p.exited;};
   try{
     expect(await run()).toBe(0);expect(existsSync(wrapper)).toBe(false);expect(await run('--apply')).toBe(0);expect(existsSync(wrapper)).toBe(true);expect(existsSync(skill)).toBe(true);
+    const importer=join(config,'skills','import-scheduled-tasks','SKILL.md'),collector=join(config,'skills','import-scheduled-tasks','scripts','collect.py');expect(existsSync(importer)).toBe(true);expect(existsSync(collector)).toBe(true);
     expect(await run('--remove','--apply')).toBe(0);expect(existsSync(wrapper)).toBe(false);expect(existsSync(skill)).toBe(false);
+    expect(existsSync(importer)).toBe(false);expect(existsSync(collector)).toBe(false);
     mkdirSync(join(config,'skills','task-manager'),{recursive:true});writeFileSync(skill,'foreign skill');expect(await run('--apply')).not.toBe(0);expect(existsSync(wrapper)).toBe(false);expect(readFileSync(skill,'utf8')).toBe('foreign skill');
   }finally{rmSync(root,{recursive:true});}
 });

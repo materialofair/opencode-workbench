@@ -5,8 +5,19 @@
   "errors": 0,
   "configurationAndOtherComponentsUnchanged": true,
   "quoteOnlyFixLoadedAfterIdleRestart": true,
-  "realUserReplyRetest": "pending",
+  "realUserReplyRetest": "legacy interactive card degraded correctly; original text repeat not passed; fresh-card retest pending",
   "newScopesRequired": false,
   "rawWebsocketEventRetained": false,
-  "realFeishuMessagesSentByThisTest": 0
+  "realFeishuMessagesSentByThisTest": 0,
+  "legacyCardTest": {
+    "receivedOnce": true,
+    "parentType": "interactive",
+    "parentPredatesFix": true,
+    "existingReadPermissionsSufficient": true,
+    "remoteBodyAvailable": false,
+    "reliableHistoricalMappingFound": false,
+    "assistantCompleted": true,
+    "originalBodyRepeatPassed": false,
+    "latestBotCardReceiptSaved": true
+  }
 }

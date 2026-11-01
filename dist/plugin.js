@@ -159,6 +159,7 @@ class Store {
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS task_imports(source_key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, task_id TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,task_id TEXT NOT NULL,slot TEXT NOT NULL,data TEXT NOT NULL,UNIQUE(task_id,slot));
       CREATE TABLE IF NOT EXISTS lease(id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT NOT NULL, until_ms INTEGER NOT NULL);`);
     const version = this.db.query("SELECT value FROM meta WHERE key='schema'").get();
@@ -184,10 +185,12 @@ class Store {
         throw new Error("任务不存在");
       if (old && old.revision !== expected)
         throw new Error("任务已变更，请刷新后重试");
+      if (old?.origin && v.enabled && !old.enabled && (input.acknowledgeExternalSchedule !== true || input.executor !== "workbench"))
+        throw new Error("导入任务启用前需明确选择 Workbench 执行者，并确认旧调度仍可能运行");
       const next = v.enabled ? nextAt(v.schedule, v.timezone, now, now) : null;
       if (v.enabled && next === null)
         throw new Error("单次任务必须选择将来的时间");
-      const t = { ...v, id: old?.id ?? randomUUID(), revision: (old?.revision ?? 0) + 1, anchor: now, next, created: old?.created ?? now, updated: now };
+      const t = { ...v, ...old?.origin ? { origin: { ...old.origin, executor: v.enabled ? "workbench" : old.origin.executor } } : {}, id: old?.id ?? randomUUID(), revision: (old?.revision ?? 0) + 1, anchor: now, next, created: old?.created ?? now, updated: now };
       this.put(t);
       return t;
     })();
@@ -336,6 +339,8 @@ class Engine {
     const t = this.store.task(id);
     if (!t)
       throw new Error("任务不存在");
+    if (t.origin?.executor === "unassigned")
+      throw new Error("导入任务尚未选择执行者；请先编辑并明确启用 Workbench 调度");
     const existing = this.store.runs().find((r) => r.taskID === id && r.slot === `manual:${key}`);
     if (existing)
       return existing;
@@ -498,6 +503,145 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
+
+// src/import-tasks.ts
+import { createHash, randomUUID as randomUUID3 } from "node:crypto";
+import { posix, win32 } from "node:path";
+var hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+var issueCodes = new Set(["PROJECT_ID_MISMATCH", "UNSUPPORTED_COMMAND", "UNSUPPORTED_MODEL", "UNSUPPORTED_COMMAND_OPTIONS", "MISSING_PROJECT", "MISSING_TIMEZONE", "UNSUPPORTED_CRON", "UNSUPPORTED_CRON_STDIN", "UNSUPPORTED_LAUNCHD_SCHEDULE", "ADDITIONAL_LAUNCHD_TRIGGERS", "SOURCE_ENVIRONMENT_REQUIRES_REVIEW", "LAUNCHD_MISFIRE_REQUIRES_REVIEW", "UNSUPPORTED_WINDOWS_ACTIONS", "MISSING_TIMEZONE_OFFSET", "UNSUPPORTED_WINDOWS_REPETITION", "UNSUPPORTED_WINDOWS_TRIGGER", "WINDOWS_EXECUTION_CONTEXT_REQUIRES_REVIEW", "WINDOWS_ARGUMENTS_REQUIRE_STRUCTURED_ARGV"]);
+function identity(value, label) {
+  if (typeof value !== "string" || !value.trim() || value.length > 512 || /[\u0000-\u001f]/.test(value))
+    throw new Error(`Invalid ${label}`);
+  return value;
+}
+function projectKey(value) {
+  if (win32.isAbsolute(value) && !posix.isAbsolute(value))
+    return "win:" + win32.normalize(value).replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/, "").replace(/[\\/]+$/, "").toLowerCase();
+  if (!posix.isAbsolute(value))
+    throw new Error("Project must be an absolute path");
+  return "posix:" + posix.normalize(value).replace(/\/$/, "");
+}
+function signature(input, project, contentOnly = false) {
+  return hash([project, input.prompt, input.model?.providerID ?? "", input.model?.modelID ?? "", ...contentOnly ? [] : [input.timezone, input.schedule]]);
+}
+function parse(value) {
+  if (!value || typeof value !== "object" || JSON.stringify(value).length > 65536)
+    throw new Error("Import manifest is invalid or exceeds 64 KiB");
+  const v = value;
+  if (v.version !== 1 || !Array.isArray(v.sources) || !v.sources.length || v.sources.length > 20)
+    throw new Error("Expected version 1 and 1–20 sources");
+  let total = 0;
+  for (const s of v.sources) {
+    if (!s || !["workbench", "cron", "launchd", "windows-task", "plugin"].includes(s.kind))
+      throw new Error("Unsupported source kind");
+    identity(s.id, "source ID");
+    if (!Array.isArray(s.tasks))
+      throw new Error("Expected source tasks");
+    total += s.tasks.length;
+    for (const t of s.tasks) {
+      if (!t || typeof t !== "object")
+        throw new Error("Invalid source task");
+      identity(t.id, "source task ID");
+    }
+  }
+  if (total < 1 || total > 100)
+    throw new Error("Import 1–100 tasks per batch");
+  return v;
+}
+function plan(store, directory, manifest) {
+  const v = parse(manifest), project = projectKey(directory), tasks = store.tasks();
+  const rows = [], candidates = [];
+  const seen = new Map, fingerprints = new Set, contents = new Set, names = new Set;
+  for (const source of v.sources)
+    for (const raw of source.tasks) {
+      const key = hash([source.kind, source.id, raw.id]);
+      const row = { source: `${source.kind}:${source.id}`, taskID: raw.id, status: "unsupported", reasons: [] };
+      rows.push(row);
+      let input;
+      try {
+        if (projectKey(identity(raw.project, "project")) !== project)
+          throw new Error("Project differs from the current OpenCode project; open that project to import");
+        if (raw.enabled !== true && raw.enabled !== false && raw.enabled !== "unknown")
+          throw new Error("Original enabled state must be true, false or unknown");
+        if (raw.issues !== undefined && (!Array.isArray(raw.issues) || raw.issues.some((x) => typeof x !== "string")))
+          throw new Error("Invalid adapter issues");
+        if (raw.issues?.length)
+          throw new Error("Adapter requires review: " + [...new Set(raw.issues.map((x) => issueCodes.has(x) ? x : "UNKNOWN_ADAPTER_ISSUE"))].join(", "));
+        input = validate({ ...raw, enabled: false, misfire: "skip" });
+        row.name = input.name;
+        row.schedule = input.schedule;
+        row.timezone = input.timezone;
+        row.originalEnabled = raw.enabled;
+      } catch (e) {
+        row.reasons.push(e instanceof Error ? e.message : "Invalid task");
+        continue;
+      }
+      const fingerprint = signature(input, project), content = signature(input, project, true);
+      const revision = hash([fingerprint, input.name, raw.enabled]);
+      const prior = store.db.query("SELECT fingerprint,task_id FROM task_imports WHERE source_key=?").get(key);
+      if (prior) {
+        row.existingTaskID = prior.task_id;
+        row.status = prior.fingerprint === revision ? "duplicate" : "conflict";
+        row.reasons.push(prior.fingerprint === revision ? store.task(prior.task_id) ? "This source task was already imported; existing edits are preserved" : "Previously imported task was deleted; automatic resurrection is blocked" : "This source task changed since import; existing task will not be overwritten");
+        continue;
+      }
+      if (seen.has(key)) {
+        row.status = seen.get(key) === revision ? "duplicate" : "conflict";
+        row.reasons.push("Source task ID repeats within this batch" + (row.status === "conflict" ? " with different content" : ""));
+        continue;
+      }
+      seen.set(key, revision);
+      const exact = tasks.find((t) => signature(t, project) === fingerprint);
+      if (exact || fingerprints.has(fingerprint)) {
+        row.status = "duplicate";
+        row.existingTaskID = exact?.id;
+        row.reasons.push("Same project, prompt, model, timezone and schedule already exist");
+        continue;
+      }
+      const similar = tasks.find((t) => signature(t, project, true) === content || t.name.toLowerCase() === input.name.toLowerCase());
+      if (similar || contents.has(content) || names.has(input.name.toLowerCase())) {
+        row.status = "conflict";
+        row.existingTaskID = similar?.id;
+        row.reasons.push("Same prompt/model or name has a different schedule or content; review manually");
+        continue;
+      }
+      row.status = "ready";
+      row.reasons.push("Will create a disabled task; the original scheduler remains unchanged");
+      fingerprints.add(fingerprint);
+      contents.add(content);
+      names.add(input.name.toLowerCase());
+      candidates.push({ key, fingerprint: revision, input, origin: { kind: source.kind, sourceID: source.id, taskID: raw.id, fingerprint: revision, originalEnabled: raw.enabled, executor: "unassigned" } });
+    }
+  const counts = { ready: 0, duplicate: 0, conflict: 0, unsupported: 0 };
+  for (const r of rows)
+    counts[r.status]++;
+  const preview = hash([v, tasks, rows]);
+  return { result: { preview, rows, counts, enabled: false, executor: "unassigned" }, candidates };
+}
+function previewImport(store, directory, manifest) {
+  return plan(store, directory, manifest).result;
+}
+function applyImport(store, directory, manifest, preview) {
+  return store.db.transaction(() => {
+    const p = plan(store, directory, manifest);
+    if (p.result.counts.duplicate === p.result.rows.length)
+      return { ...p.result, imported: [] };
+    if (p.result.preview !== preview)
+      throw new Error("Import preview is stale or missing; run dry-run again");
+    if (p.result.counts.conflict || p.result.counts.unsupported)
+      throw new Error("Resolve conflicts and unsupported tasks before importing; no tasks were written");
+    const now = Date.now(), imported = [];
+    for (const c of p.candidates) {
+      const task = { ...c.input, id: randomUUID3(), revision: 1, anchor: now, next: null, created: now, updated: now, origin: c.origin };
+      store.put(task);
+      store.db.query("INSERT INTO task_imports VALUES(?,?,?)").run(c.key, c.fingerprint, task.id);
+      imported.push(task.id);
+    }
+    return { ...p.result, imported };
+  })();
+}
+
+// src/server.ts
 var assets = new URL("../public/", import.meta.url);
 var sharedHeaders = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'", "Cross-Origin-Resource-Policy": "same-origin", "X-Frame-Options": "DENY" };
 function equal(a, b) {
@@ -521,7 +665,11 @@ async function body(req) {
     }
     chunks.push(r.value);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    throw new Error("Invalid JSON request");
+  }
 }
 async function startServer(engine, directory, demo = false) {
   const token = randomBytes(32).toString("base64url");
@@ -544,7 +692,13 @@ async function startServer(engine, directory, demo = false) {
         return json({ error: "CSRF rejected" }, 403);
       try {
         if (u.pathname === "/api/state" && req.method === "GET")
-          return json({ tasks: engine.store.tasks(), runs: engine.store.runs(), directory, leader: engine.leader, demo, concurrency: engine.concurrency, now: Date.now(), lifecycle: "调度随此 OpenCode 后端运行。真正退出、休眠、关机时不能准点执行。" });
+          return json({ tasks: engine.store.tasks(), runs: engine.store.runs(), directory, capabilities: { importTasks: true }, leader: engine.leader, demo, concurrency: engine.concurrency, now: Date.now(), lifecycle: "调度随此 OpenCode 后端运行。真正退出、休眠、关机时不能准点执行。" });
+        if (u.pathname === "/api/import/preview" && req.method === "POST")
+          return json(previewImport(engine.store, directory, await body(req)));
+        if (u.pathname === "/api/import/apply" && req.method === "POST") {
+          const v = await body(req);
+          return json(applyImport(engine.store, directory, v.manifest, v.preview), 201);
+        }
         if (u.pathname === "/api/tasks" && req.method === "POST") {
           const v = await body(req);
           return json(engine.store.save(v), 201);
@@ -643,30 +797,30 @@ async function startServer(engine, directory, demo = false) {
 }
 
 // src/platform.ts
-import { win32, posix } from "node:path";
+import { win32 as win322, posix as posix2 } from "node:path";
 import { mkdirSync as mkdirSync2, chmodSync as chmodSync2, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { createHash } from "node:crypto";
+import { createHash as createHash2 } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
 function directoryKey(directory, platform = process.platform) {
   if (platform !== "win32")
     return directory;
-  const normal = win32.normalize(directory).replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/, "");
+  const normal = win322.normalize(directory).replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/, "");
   return normal.toLowerCase();
 }
 function projectID(directory, platform = process.platform) {
-  return createHash("sha256").update(directoryKey(directory, platform)).digest("hex").slice(0, 24);
+  return createHash2("sha256").update(directoryKey(directory, platform)).digest("hex").slice(0, 24);
 }
 function stateDirectory(directory, env = process.env, home = homedir(), platform = process.platform) {
-  const path = platform === "win32" ? win32 : posix;
+  const path = platform === "win32" ? win322 : posix2;
   const base = env.XDG_STATE_HOME || (platform === "win32" ? env.LOCALAPPDATA || path.join(home, "AppData", "Local") : path.join(home, ".local", "state"));
   return path.join(base, "opencode-workbench", projectID(directory, platform));
 }
 var run = (file, args) => execFileSync(file, args, { encoding: "utf8", windowsHide: true, timeout: 1e4, stdio: ["ignore", "pipe", "pipe"] });
 function systemExecutable(name, env) {
-  if (!env.SystemRoot || !win32.isAbsolute(env.SystemRoot))
+  if (!env.SystemRoot || !win322.isAbsolute(env.SystemRoot))
     throw new Error("Windows SystemRoot is unavailable");
-  return win32.join(env.SystemRoot, "System32", name);
+  return win322.join(env.SystemRoot, "System32", name);
 }
 function protectStateDirectory(directory, platform = process.platform, env = process.env, execute = run) {
   mkdirSync2(directory, { recursive: true, mode: 448 });
@@ -675,8 +829,8 @@ function protectStateDirectory(directory, platform = process.platform, env = pro
     return;
   }
   try {
-    const identity = execute(systemExecutable("whoami.exe", env), ["/user", "/fo", "csv", "/nh"]);
-    const sid = identity.match(/\bS-\d-\d+(?:-\d+)+\b/)?.[0];
+    const identity2 = execute(systemExecutable("whoami.exe", env), ["/user", "/fo", "csv", "/nh"]);
+    const sid = identity2.match(/\bS-\d-\d+(?:-\d+)+\b/)?.[0];
     if (!sid)
       throw new Error("Windows user SID unavailable");
     const icacls = systemExecutable("icacls.exe", env);
@@ -744,7 +898,23 @@ var TaskManager = async (ctx) => {
       if (store.active().some((r) => r.sessionID === input.sessionID) && output.status === "allow")
         output.status = "ask";
     },
-    tool: { open_task_manager: tool({
+    tool: { import_scheduled_tasks: tool({
+      description: "预览或导入已由只读收集器提取的 OpenCode 旧任务 JSON 清单。默认 dry-run；导入一律禁用，不改动旧调度。返回内容不包含提示词。",
+      args: { manifest: tool.schema.string().max(65536).describe("version 1 JSON manifest"), dryRun: tool.schema.boolean().default(true), preview: tool.schema.string().optional().describe("Exact preview fingerprint from dry-run, required to apply") },
+      async execute(args, context) {
+        if (disposed)
+          throw new Error("任务管理已停止");
+        if (store.active().some((r) => r.sessionID === context.sessionID))
+          throw new Error("定时任务不能导入其他任务");
+        let manifest;
+        try {
+          manifest = JSON.parse(args.manifest);
+        } catch {
+          throw new Error("Invalid import JSON; inspect the manifest locally");
+        }
+        return JSON.stringify(args.dryRun !== false ? previewImport(store, directory, manifest) : applyImport(store, directory, manifest, args.preview ?? ""));
+      }
+    }), open_task_manager: tool({
       description: "在本机默认浏览器中打开当前 OpenCode 项目的定时任务管理页面。只打开页面，不创建或执行任务。",
       args: {},
       async execute(_args, context) {

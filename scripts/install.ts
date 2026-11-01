@@ -9,6 +9,7 @@ const config=global?join(process.env.XDG_CONFIG_HOME||join(homedir(),'.config'),
 const buildHash=createHash('sha256').update(readFileSync(join(root,'dist/plugin.js'))).digest('hex').slice(0,12);
 const wrapper=`// Installed by OpenCode Workbench. Remove with the same install script.\nexport { TaskManager } from ${JSON.stringify(pathToFileURL(join(root,'dist/plugin.js')).href+'?v='+buildHash)};\n`;
 const files=[{path:join(config,'plugins','workbench-tasks.js'),content:wrapper},{path:join(config,'skills','task-manager','SKILL.md'),content:readFileSync(join(root,'skills/task-manager/SKILL.md'),'utf8')}];
+for(const name of ['SKILL.md','scripts/collect.py'])files.push({path:join(config,'skills','import-scheduled-tasks',name),content:readFileSync(join(root,'skills','import-scheduled-tasks',name),'utf8')});
 if(!existsSync(join(root,'public','app.js')) || !existsSync(join(root,'dist','plugin.js')))throw new Error('Run bun run build first');
 // Preflight every target before any mutation. Never overwrite another installation.
 for(const f of files){

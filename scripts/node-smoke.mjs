@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';import {mkdtempSync,rmSync,mkdirSync,writeFileSync,copyFileSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import childProcess from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';import {EventEmitter} from 'node:events';
+import assert from 'node:assert/strict';import {mkdtempSync,rmSync,mkdirSync,writeFileSync,copyFileSync,realpathSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import childProcess from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';import {EventEmitter} from 'node:events';
 const directory=mkdtempSync(join(tmpdir(),'workbench node 中文-'));process.env.XDG_STATE_HOME=join(directory,'state');
 const original=childProcess.spawn;let pageURL='';let submissions=0;
 childProcess.spawn=(_cmd,args)=>{pageURL=args.at(-1);const fake=new EventEmitter();queueMicrotask(()=>fake.emit('exit',0));return fake;};syncBuiltinESMExports();
@@ -24,5 +24,10 @@ try{
   for(let i=0;i<40&&submissions===0;i++)await new Promise(r=>setTimeout(r,25));assert.equal(submissions,1);
   await hooks.event({event:{type:'session.idle',properties:{sessionID:'node-fixture'}}});
   const state=await (await fetch(u.origin+'/api/state',{headers})).json();assert.equal(state.runs[0].status,'succeeded');
+  const manifest=JSON.stringify({version:1,sources:[{kind:'plugin',id:'node-fixture-source',tasks:[{id:'old-node-task',project:realpathSync(directory),name:'Imported Node fixture',prompt:'Read separate import fixture only',timezone:'UTC',schedule:{kind:'interval',minutes:60},enabled:true}]}]});
+  const preview=JSON.parse(await hooks.tool.import_scheduled_tasks.execute({manifest},{sessionID:'fixture-agent'}));assert.equal(preview.counts.ready,1);assert.equal((await (await fetch(u.origin+'/api/state',{headers})).json()).tasks.length,1);
+  const result=JSON.parse(await hooks.tool.import_scheduled_tasks.execute({manifest,dryRun:false,preview:preview.preview},{sessionID:'fixture-agent'}));assert.equal(result.imported.length,1);
+  const retry=JSON.parse(await hooks.tool.import_scheduled_tasks.execute({manifest,dryRun:false,preview:preview.preview},{sessionID:'fixture-agent'}));assert.equal(retry.imported.length,0);
+  const importedState=await (await fetch(u.origin+'/api/state',{headers})).json();const imported=importedState.tasks.find(t=>t.id===result.imported[0]);assert.equal(imported.enabled,false);assert.equal(imported.origin.executor,'unassigned');assert.equal(submissions,1);
   console.log(JSON.stringify({runtime:'node',toolRegistered:true,sqliteCRUD:true,httpAuth:true,submittedOnce:true,terminalStatus:'succeeded'}));
 }finally{await hooks?.dispose();childProcess.spawn=original;syncBuiltinESMExports();rmSync(directory,{recursive:true});}

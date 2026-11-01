@@ -38,7 +38,7 @@ bun scripts/install.ts --project /absolute/path/to/test-project
 bun scripts/install.ts --project /absolute/path/to/test-project --apply
 ```
 
-安装器只添加 `.opencode/plugins/workbench-tasks.js` 与 `.opencode/skills/task-manager/SKILL.md`，不改写 opencode.json、模型配置、权限或现有飞书插件。先输出安装计划；加 `--apply` 才写入。加载一个全新项目实例后对 OpenCode 说「打开定时任务管理」。插件通过带构建哈希的绝对文件 URL 引用此源码目录的 dist/plugin.js，暂勿移动或删除源码。
+安装器只添加 `.opencode/plugins/workbench-tasks.js`、`.opencode/skills/task-manager/SKILL.md` 与 `.opencode/skills/import-scheduled-tasks/`，不改写 opencode.json、模型配置、权限或现有飞书插件。先输出安装计划；加 `--apply` 才写入。加载一个全新项目实例后对 OpenCode 说「打开定时任务管理」。插件通过带构建哈希的绝对文件 URL 引用此源码目录的 dist/plugin.js，暂勿移动或删除源码。
 
 需要所有项目可发现时用 `--global` 替代 `--project ...`，检查计划后加 `--apply`。这只安装任务管理器；**不会安装或启用第二个飞书连接**。已有同名文件且内容不同会拒绝覆盖。
 
@@ -99,3 +99,7 @@ bun run scan:release
 原有 5 个高危依赖节点已通过限定升级修复，新锁文件隔离安装的 npm audit 为 0 已知告警；[逐项核查与边界](docs/DEPENDENCY_SECURITY.md)明确区分项目依赖、既有客户端及实际可达性。当前预览版仍未完成生产安全验收。
 
 [架构](docs/ARCHITECTURE.md) · [安全边界](docs/SECURITY.md) · [验证记录](docs/VERIFICATION.md)
+
+## 导入已有定时任务
+
+对 OpenCode 说「只读识别这台电脑已有的定时任务并预览导入」，使用 `import-scheduled-tasks` Skill。先核实实际来源、项目、时区与执行语义，再调用 `import_scheduled_tasks` 工具（默认 dry-run）；管理页也可粘贴统一清单进行预览。支持来源标识、可解释的重复/冲突检测、幂等提交，导入全部禁用且不修改旧调度。启用前须明确选择 Workbench 执行者，核实旧调度避免双重执行。未知插件、复杂 cron、launchd / Windows 执行上下文差异会阻止自动导入，不能把未知当作空任务。详见 [导入接口与转换边界](docs/IMPORT_TASKS.md)。

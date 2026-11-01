@@ -3,7 +3,8 @@ import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { nextAt, validate, type TaskInput } from './schedule';
-export type Task = TaskInput & { id: string; revision: number; anchor: number; next: number | null; created: number; updated: number };
+export type ImportOrigin = { kind: string; sourceID: string; taskID: string; fingerprint: string; originalEnabled: boolean | 'unknown'; executor: 'unassigned' | 'workbench' };
+export type Task = TaskInput & { id: string; revision: number; anchor: number; next: number | null; created: number; updated: number; origin?: ImportOrigin };
 export type RunStatus = 'submitting' | 'submitted' | 'running' | 'waiting_approval' | 'waiting_input' | 'succeeded' | 'failed' | 'uncertain' | 'interrupted' | 'skipped';
 export const ACTIVE = ['submitting','submitted','running','waiting_approval','waiting_input','uncertain'];
 export type Run = { id: string; taskID: string; taskName: string; slot: string; status: RunStatus; sessionID: string | null; created: number; updated: number; note: string; revision: number; version: number };
@@ -18,6 +19,7 @@ export class Store {
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS task_imports(source_key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, task_id TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,task_id TEXT NOT NULL,slot TEXT NOT NULL,data TEXT NOT NULL,UNIQUE(task_id,slot));
       CREATE TABLE IF NOT EXISTS lease(id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT NOT NULL, until_ms INTEGER NOT NULL);`);
     const version = this.db.query("SELECT value FROM meta WHERE key='schema'").get() as {value:string}|null;
@@ -33,9 +35,10 @@ export class Store {
       const old = id ? this.task(id) : undefined;
       if (id && !old) throw new Error('任务不存在');
       if (old && old.revision !== expected) throw new Error('任务已变更，请刷新后重试');
+      if (old?.origin && v.enabled && !old.enabled && ((input as any).acknowledgeExternalSchedule !== true || (input as any).executor !== 'workbench')) throw new Error('导入任务启用前需明确选择 Workbench 执行者，并确认旧调度仍可能运行');
       const next = v.enabled ? nextAt(v.schedule,v.timezone,now,now) : null;
       if (v.enabled && next === null) throw new Error('单次任务必须选择将来的时间');
-      const t: Task = { ...v, id: old?.id ?? randomUUID(), revision: (old?.revision ?? 0)+1, anchor: now, next, created: old?.created ?? now, updated: now };
+      const t: Task = { ...v, ...(old?.origin?{origin:{...old.origin,executor:v.enabled?'workbench' as const:old.origin.executor}}:{}), id: old?.id ?? randomUUID(), revision: (old?.revision ?? 0)+1, anchor: now, next, created: old?.created ?? now, updated: now };
       this.put(t); return t;
     })();
   }

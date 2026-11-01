@@ -34,6 +34,20 @@ async function main(){
     // Text entered by users is rendered as text, never executable markup.
     const xss=store.save({name:'<img src=x onerror=alert(1)>',prompt:'<script>alert(1)</script>',timezone:'UTC',schedule:{kind:'interval',minutes:1},enabled:true,misfire:'skip'});
     await page.reload();await page.getByRole('heading',{name:xss.name,exact:true}).waitFor();assert.equal(await page.locator('article img').count(),0);assert.equal(await page.locator('article script').count(),0);
+    await page.setViewportSize({width:1280,height:1000});
+    await page.getByRole('button',{name:'导入旧任务',exact:true}).click();
+    await page.getByLabel('任务清单 JSON',{exact:true}).fill(JSON.stringify({version:1,sources:[{kind:'plugin',id:'synthetic-ui-source',tasks:[{id:'old-ui-task',project:'/demo/test-project',name:'导入演示',prompt:'Read synthetic import fixture only',timezone:'UTC',schedule:{kind:'interval',minutes:60},enabled:true}]}]}));
+    await page.getByRole('button',{name:'只读预览',exact:true}).click();await page.getByText('可导入 1 · 重复 0 · 冲突 0 · 不支持 0',{exact:true}).waitFor();assert.equal(store.tasks().length,1);
+    await page.screenshot({path:'artifacts/task-import-preview.png',fullPage:true});
+    await page.getByRole('button',{name:'导入为禁用任务',exact:true}).click();await page.getByRole('heading',{name:'导入演示',exact:true}).waitFor();
+    const imported=store.tasks().find(t=>t.name==='导入演示');assert.ok(imported);assert.equal(imported.enabled,false);assert.equal(imported.next,null);assert.equal(imported.origin?.executor,'unassigned');assert.equal(store.runs().length,1);
+    const importedCard=page.locator('article').filter({has:page.getByRole('heading',{name:'导入演示',exact:true})});
+    await importedCard.getByRole('button',{name:'启用',exact:true}).click();await importedCard.getByRole('button',{name:'暂停',exact:true}).waitFor();assert.equal(store.task(imported.id)?.origin?.executor,'workbench');
+    await page.screenshot({path:'artifacts/task-import-provenance.png',fullPage:true});assert.deepEqual(errors,[]);
+    // A new asset bundle must keep existing clients usable before host reload.
+    await page.route('**/api/state',async route=>{const response=await route.fetch();const legacy=await response.json();delete legacy.capabilities;await route.fulfill({response,json:legacy});});
+    await page.reload();await page.getByRole('heading',{name:'导入演示',exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'导入旧任务',exact:true}).count(),0);assert.equal(await page.getByRole('button',{name:'＋ 新建任务',exact:true}).count(),1);
+    await page.unroute('**/api/state');await page.reload();await page.getByRole('button',{name:'导入旧任务',exact:true}).waitFor();assert.deepEqual(errors,[]);
   }finally{await browser.close();server.stop();await engine.stop();store.close();}
 }
 await main();
