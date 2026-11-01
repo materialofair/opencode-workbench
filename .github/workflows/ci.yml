@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -16,15 +16,17 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.16.0'
+          node-version: '22.22.2'
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.2.18'
       - run: npm ci --ignore-scripts
       - run: bun run build
       - run: bun run typecheck
-      - run: bunx playwright install --with-deps chromium
-      - run: bun test tests
+      - name: Core and native runtime tests
+        run: bun test tests/engine.test.ts tests/feishu.test.ts tests/install.test.ts tests/node-runtime.test.ts tests/platform.test.ts tests/schedule.test.ts tests/security.test.ts
       - run: bun run test:integration
+      - run: bunx playwright install --with-deps chromium
+      - run: bun test tests/ui.test.ts
       - run: bun run scan
       - run: bun run scan:release

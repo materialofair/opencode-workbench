@@ -4,7 +4,7 @@
 
 ## 安装、升级与卸载
 
-开发机需要 Git、Node 22.13+（CI 固定 22.16.0）和 Bun（CI 固定 1.2.18）。使用各自官方安装来源；不需要更改 PowerShell execution policy、防火墙、全局 OpenCode 安全权限，也不创建开机服务。Desktop 使用其自身带有 node:sqlite 的 Node sidecar，构建工具不会替换 Desktop 的运行时。
+开发机需要 Git、Node 22.22.2+ 的受支持 LTS 分支（CI 固定 22.22.2）和 Bun（CI 固定 1.2.18）。Node 内置 SQLite 自身的下限是 22.13，但锁定的开发依赖 ini 7 要求更高的受支持 Node 版本，因此开发安装使用 22.22.2。使用各自官方安装来源；不需要更改 PowerShell execution policy、防火墙、全局 OpenCode 安全权限，也不创建开机服务。Desktop 使用其自身带有 node:sqlite 的 Node sidecar，构建工具不会替换 Desktop 的运行时。
 
 PowerShell 示例；`npm.cmd` 可避免 PowerShell 将命令解析到 npm.ps1：
 
@@ -59,7 +59,7 @@ Node 使用内置 node:sqlite，Bun 使用 bun:sqlite，不安装另一个 SQLit
 
 脱敏的本机验证汇总见 [cross-platform-local.json](evidence/cross-platform-local.json)，明确标记本机没有 Windows 环境，不包含真实路径或会话标识。
 
-`.github/workflows/ci.yml` 为 windows-latest、macos-latest、ubuntu-latest 提供相同构建和测试；原生 Windows 额外读取实际 DACL，验证目录及 SQLite/WAL 文件仅含当前用户/SYSTEM。CI 也运行真实 OpenCode 1.19.5 隔离后端和固定 loopback 模型，覆盖审批等待、中止、强制结束后恢复及请求去重。首次初始化会从公开 npm registry 安装宿主插件依赖；总测试超时 180 秒，阶段与失败写入私有 artifacts。没有使用真实凭据或外部消息。
+`.github/workflows/ci.yml` 为 windows-latest、macos-latest、ubuntu-24.04 提供相同构建和测试；Linux 固定 24.04，因为 Playwright 1.56.1 不支持当前 ubuntu-latest 所指的 26.04。原生 Windows 额外读取实际 DACL，验证目录及 SQLite/WAL 文件仅含当前用户/SYSTEM。CI 也运行真实 OpenCode 1.19.5 隔离后端和固定 loopback 模型，覆盖审批等待、中止、强制结束后恢复及请求去重。首次初始化会从公开 npm registry 安装宿主插件依赖；总测试超时 180 秒，阶段与失败写入私有 artifacts。没有使用真实凭据或外部消息。
 
 ```powershell
 bunx playwright install chromium

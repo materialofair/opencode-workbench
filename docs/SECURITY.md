@@ -15,3 +15,5 @@
 Windows 仅收紧插件自己的项目状态目录 ACL，不改变全局权限、execution policy 或防火墙；失败则不启动调度。POSIX 使用私人目录/文件权限。安装器拒绝经过符号链接或 Windows junction 写入目标，以避免越出选定安装位置。完整平台范围见 [Windows 说明](WINDOWS.md)。
 
 `bun run scan` 为启发式公开文件扫描，`bun run scan:release` 另扫描全部本地 Git 对象、历史路径及提交元数据；两者不覆盖所有未知密钥格式，也不代替依赖漏洞审核或人工检查。
+
+锁定上游的 npm audit 目前有 5 个 high 依赖节点、0 critical，未强制覆盖宿主依赖；具体公告、范围和未修复状态见 [依赖安全告警](DEPENDENCY_SECURITY.md)。

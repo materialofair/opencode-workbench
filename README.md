@@ -94,4 +94,6 @@ bun run scan:release
 
 扫描只报告文件/对象、行号和规则名，不输出匹配密钥。`scan:release` 检查全部本地 Git 对象（含不可达历史）、提交/标签元数据、历史路径与当前 tracked/未忽略文件，完整清单写入不提交的 `artifacts/release-audit.json`。扫描通过并不等于完整安全审计；发布前仍需人工审查 staged diff、私人信息与目标仓库。完整公开范围和许可核查见 [发布准备](docs/RELEASE_PREPARATION.md)。本项目的 GitHub CI 使用隔离 fixture，不读取个人配置、不调用真实模型或飞书、不发布 npm。
 
+锁定上游仍有已知的 [依赖安全告警](docs/DEPENDENCY_SECURITY.md)，当前预览版不能视为已完成生产安全验收。
+
 [架构](docs/ARCHITECTURE.md) · [安全边界](docs/SECURITY.md) · [验证记录](docs/VERIFICATION.md)
