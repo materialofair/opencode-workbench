@@ -21,7 +21,10 @@ test.skipIf(process.platform!=='win32')('native Windows state ACL protects SQLit
     store=new Store(join(root,'tasks.sqlite'));
     store.save({name:'Native ACL fixture',prompt:'Synthetic only',timezone:'UTC',schedule:{kind:'interval',minutes:1},enabled:false,misfire:'skip'});
     const script=`$ErrorActionPreference='Stop'; $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value; $items=@(Get-Item -LiteralPath $env:WORKBENCH_ACL_FIXTURE)+@(Get-ChildItem -LiteralPath $env:WORKBENCH_ACL_FIXTURE -Force); $ok=$true; foreach($item in $items){$acl=Get-Acl -LiteralPath $item.FullName; $ids=@($acl.Access | ForEach-Object {$_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value}); if($item.PSIsContainer -and !$acl.AreAccessRulesProtected){$ok=$false}; if($ids -notcontains $sid -or $ids -notcontains 'S-1-5-18' -or @($ids | Where-Object {$_ -ne $sid -and $_ -ne 'S-1-5-18'}).Count -ne 0){$ok=$false}}; @{privateAcl=$ok;items=$items.Count}|ConvertTo-Json -Compress`;
-    const result=JSON.parse(execFileSync(join(process.env.SystemRoot!,'System32','WindowsPowerShell','v1.0','powershell.exe'),['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8',env:{...process.env,WORKBENCH_ACL_FIXTURE:root}}).trim());
+    // A pwsh 7 CI shell exports module paths incompatible with Windows
+    // PowerShell 5. Use that executable's own built-in modules in this child.
+    const windowsPowerShell=join(process.env.SystemRoot!,'System32','WindowsPowerShell','v1.0');
+    const result=JSON.parse(execFileSync(join(windowsPowerShell,'powershell.exe'),['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8',env:{...process.env,PSModulePath:join(windowsPowerShell,'Modules'),WORKBENCH_ACL_FIXTURE:root}}).trim());
     expect(result.privateAcl).toBe(true);expect(result.items).toBeGreaterThanOrEqual(2);
   }finally{store?.close();rmSync(root,{recursive:true,maxRetries:5,retryDelay:50});}
 });
