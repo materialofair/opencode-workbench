@@ -5,7 +5,7 @@
   "errors": 0,
   "configurationAndOtherComponentsUnchanged": true,
   "quoteOnlyFixLoadedAfterIdleRestart": true,
-  "realUserReplyRetest": "legacy interactive card degraded correctly; original text repeat not passed; fresh-card retest pending",
+  "realUserReplyRetest": "earlier default-read legacy-card test did not recover text; raw-card query now verified and loaded; client repeat retest pending",
   "newScopesRequired": false,
   "rawWebsocketEventRetained": false,
   "realFeishuMessagesSentByThisTest": 0,
@@ -19,5 +19,15 @@
     "assistantCompleted": true,
     "originalBodyRepeatPassed": false,
     "latestBotCardReceiptSaved": true
+  },
+  "rawCardQueryCheck": {
+    "query": "card_msg_content_type=user_card_content",
+    "sameOldCardReadSucceeded": true,
+    "schema": "2.0",
+    "visibleTextExtracted": true,
+    "exactStoredAssistantTextMatch": true,
+    "newPermissionsRequired": false,
+    "loadedAfterIdleRestart": true,
+    "clientRepeatRetest": "pending"
   }
 }

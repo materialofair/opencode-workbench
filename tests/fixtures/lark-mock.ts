@@ -4,6 +4,7 @@ export const fixture=((globalThis as any)[key]??={calls:[],handlers:{},ready:fal
 export const Domain={Feishu:'fixture-only'},AppType={SelfBuild:'fixture-only'},LoggerLevel={fatal:0,error:1,warn:2,info:3,debug:4,trace:5};
 function endpoint(path:string[]):any{return new Proxy((...args:any[])=>{
   fixture.calls.push({path:path.join('.'),args});
+  if(path.join('.')==='im.message.get'&&args[0]?.params?.card_msg_content_type!=='user_card_content')throw new Error('Raw card content query is required');
   if(path.join('.')==='im.message.get')return Promise.resolve({code:0,data:{items:[{message_id:'fixture-parent',chat_id:'fixture-chat',msg_type:'interactive',body:{content:JSON.stringify({title:'Controlled quote',elements:[[{tag:'text',text:'Synthetic quoted browser task'}]]})}}]}});
   return Promise.resolve({code:0,data:{card_id:'fixture-card',message_id:`fixture-message-${fixture.calls.length}`},bot:{open_id:'fixture-bot'}});
 },{get(_t,p){if(p==='then')return undefined;return endpoint([...path,String(p)]);}});}

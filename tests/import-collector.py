@@ -84,9 +84,9 @@ class Collectors(unittest.TestCase):
 
     def test_cli_redaction_private_export_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as folder:
-            source = Path(folder)/'fixture.cron'; output = Path(folder)/'private.json'
+            source = Path(folder)/'fixture.cron'; output = Path(folder)/'private.json'; project = Path(folder)/'project'; project.mkdir()
             source.write_text('0 9 * * * opencode run "Private synthetic fixture"')
-            args = [sys.executable,str(SCRIPT),'--kind','cron','--path',str(source),'--project','/fixture/project','--timezone','UTC']
+            args = [sys.executable,str(SCRIPT),'--kind','cron','--path',str(source),'--project',str(project),'--timezone','UTC']
             result = subprocess.run(args,capture_output=True,text=True)
             self.assertEqual(result.returncode,0)
             self.assertNotIn('Private synthetic fixture',result.stdout)

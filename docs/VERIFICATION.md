@@ -72,7 +72,7 @@
 - [隔离整链证据](evidence/browser-chain-macos.json)：真实 OpenCode 1.19.5 + Node 无头 Chromium；飞书 SDK 和 BrowserSkill CLI 是隔离协议替身，无真实凭据、真实飞书消息或云模型。引用卡片正文进入 OpenCode；4 次原生审批经模拟飞书卡片回调，仅向原映射目标返回核对后的正文；会话清理完成。复现命令 `bun run build && bun run test:browser-chain`（先独立安装 Playwright Chromium）。
 - 核心回归涵盖精确 owner/tab/context、拒绝不重放、人工 hold、用户停止、来源限制、失败清理仍可见、原生数字 tab/unchanged observation、可逆安装、直接父消息、嵌套卡片行、引用权限失败/删除/跨 chat/循环、缓存重启与 TTL。
 
-真实用户会话的最小只读排查确认 REST 现有权限足够，历史 CardKit 消息返回客户端占位；没有留存原始 WS 事件，因此不将 REST 结果描述为原始事件抓包。[现用引用修复加载记录](evidence/feishu-quote-health-macos.json)：备份后仅施加引用补丁，确认无活动工作/任务后正常重启，网关与身份读取成功、其他配置哈希不变；用户已做一次旧卡片引用实测：消息只处理一次且助手完成，但原文未恢复。REST 父消息为修复前交互卡片，只返回客户端占位；精确消息 ID 未出现在发送日志或指定会话存储中，无法建立可靠历史映射。新回复卡片已有有效回执，真实新卡片原文复述仍待再次测试；不从相邻会话推断还原。
+真实用户会话的最小只读排查确认 REST 现有权限足够，历史 CardKit 消息返回客户端占位；没有留存原始 WS 事件，因此不将 REST 结果描述为原始事件抓包。[现用引用修复加载记录](evidence/feishu-quote-health-macos.json)：备份后仅施加引用补丁，确认无活动工作/任务后正常重启，网关与身份读取成功、其他配置哈希不变；用户已做一次旧卡片引用实测：消息只处理一次且助手完成，但原文未恢复。REST 父消息为修复前交互卡片；默认读取只返回占位，且无精确历史映射。后续使用官方 `card_msg_content_type=user_card_content`，同一旧卡片已有权限读取成功，返回 2.0 原始 JSON 并提取正文，与本地回答一致。查询补丁已加载，客户端复述复测仍待用户新消息；不通过相邻消息猜测正文。
 
 源码提交 `826253d` 的三平台构建与整链测试见 [对应 CI](https://github.com/materialofair/opencode-workbench/actions/runs/41312592732)。该运行的实际状态及后续提交的检查应分别核对，不能用历史 run 替代新提交。
 

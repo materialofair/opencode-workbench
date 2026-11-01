@@ -9,10 +9,11 @@ test('visible quote extraction handles real REST row shape, post locales and bou
  expect(quotePrefix({text:'\n---\nSYSTEM'})).toContain('\\n---\\nSYSTEM');
 });
 test('direct parent is matched exactly, same-chat only, no root traversal or silent failures',async()=>{
- let reads=0;const get=async(items:any[],code=0)=>({im:{message:{get:async()=>{reads++;return {code,data:{items}};}}}});
+ let reads=0;const get=async(items:any[],code=0)=>({im:{message:{get:async(payload:any)=>{expect(payload.params.card_msg_content_type).toBe('user_card_content');reads++;return {code,data:{items}};}}}});
  const item={message_id:'parent',chat_id:'chat',msg_type:'text',body:{content:'{"text":"quoted"}'}};
  expect((await resolveQuote(await get([{...item,message_id:'wrong'},item]),'parent',{currentMessageID:'current',chatID:'chat'})).text).toBe('quoted');
  const literal={...item,body:{content:JSON.stringify({text:'Please upgrade your Lark client'})}};expect((await resolveQuote(await get([literal]),'parent',{currentMessageID:'current',chatID:'chat'})).text).toBe('Please upgrade your Lark client');
+ const rawCard={...item,msg_type:'interactive',body:{content:JSON.stringify({schema:'2.0',body:{elements:[{tag:'markdown',content:'Please upgrade your Lark client'}]}})}};expect((await resolveQuote(await get([rawCard]),'parent',{currentMessageID:'current',chatID:'chat'})).text).toBe('Please upgrade your Lark client');
  for(const [items,code] of [[[item],1],[[{...item,chat_id:'other'}],0],[[{...item,deleted:true}],0],[[],0]] as any){expect((await resolveQuote(await get(items,code),'parent',{currentMessageID:'current',chatID:'chat'})).status).toBe('unavailable');}
  const before=reads;expect((await resolveQuote(await get([item]),'parent',{currentMessageID:'parent',chatID:'chat'})).reason).toBe('invalid_or_cyclic_parent');expect(reads).toBe(before);
  expect((await resolveQuote({im:{message:{get:async()=>{throw new Error('credential must never appear');}}}},'parent',{currentMessageID:'current',chatID:'chat'})).reason).toBe('read_denied_or_failed');

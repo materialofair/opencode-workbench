@@ -40,7 +40,7 @@ export async function resolveQuote(client:any,parent:string,options:{currentMess
   const unavailable=(reason:string)=>({status:'unavailable',reason,text:'引用消息正文不可用；请用户粘贴相关正文，不要猜测引用内容。'});
   if(!parent||parent.length>200||parent===options.currentMessageID)return unavailable('invalid_or_cyclic_parent');
   try{
-    let timer:ReturnType<typeof setTimeout>|undefined;let res:any;try{res=await Promise.race([client.im.message.get({path:{message_id:parent}}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Quote read timeout')),10000);})]);}finally{clearTimeout(timer);}
+    let timer:ReturnType<typeof setTimeout>|undefined;let res:any;try{res=await Promise.race([client.im.message.get({path:{message_id:parent},params:{card_msg_content_type:'user_card_content'}}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Quote read timeout')),10000);})]);}finally{clearTimeout(timer);}
     if(res?.code!==undefined&&res.code!==0)return unavailable('read_denied_or_failed');
     const msg=res?.data?.items?.find((x:any)=>x.message_id===parent);
     if(!msg||msg.deleted===true)return unavailable('missing_or_deleted');
@@ -48,7 +48,8 @@ export async function resolveQuote(client:any,parent:string,options:{currentMess
     const type=msg.msg_type,body=msg.body?.content;
     if(typeof body!=='string')return unavailable('missing_body');
     const text=extractQuote(type,body);
-    if(text&&(type!=='interactive'||!placeholder(text)))return {status:'available',source:'feishu_direct_parent',text};
+    let schema:unknown;try{schema=type==='interactive'?JSON.parse(body)?.schema:undefined;}catch{}
+    if(text&&(type!=='interactive'||schema==='1.0'||schema==='2.0'||!placeholder(text)))return {status:'available',source:'feishu_direct_parent',text};
     // Read permission and exact message/chat identity were checked above. A
     // deleted or inaccessible remote message is never resurrected from cache.
     const cached=type==='interactive'?options.cache?.get(parent,options.chatID):undefined;
