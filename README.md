@@ -30,6 +30,7 @@ UI 测试需要 Playwright Chromium。已有浏览器可通过 `PLAYWRIGHT_CHROM
 
 ```sh
 bun scripts/install.ts --project /absolute/path/to/test-project
+bun scripts/install.ts --project /absolute/path/to/test-project --apply
 ```
 
 安装器只添加 `.opencode/plugins/workbench-tasks.js` 与 `.opencode/skills/task-manager/SKILL.md`，不改写 opencode.json、模型配置、权限或现有飞书插件。先输出安装计划；加 `--apply` 才写入。加载一个全新项目实例后对 OpenCode 说「打开定时任务管理」。插件通过带构建哈希的绝对文件 URL 引用此源码目录的 dist/plugin.js，暂勿移动或删除源码。
@@ -66,7 +67,7 @@ bun run demo
 
 ## 升级、卸载和数据
 
-升级：先用旧源码中的安装器卸载包装器，再退出使用该插件的 OpenCode 后端；备份项目数据库所在目录；在新源码目录重新安装依赖、构建、验证和安装。数据库 schema 当前为 1，不支持自动降级。包装器引用原目录；原地升级可继续用原包装器，换目录需先用旧目录卸载再安装新包装器。
+升级：在其他工作结束后先用旧源码中的安装器卸载包装器，再退出使用该插件的 OpenCode 后端；备份项目数据库所在目录；在新源码目录重新安装依赖、构建、验证和安装。数据库 schema 当前为 1，不支持自动降级。即使原地更新，也应在修改旧构建或 Skill 前卸载；安装器按原构建哈希与完整内容校验归属，新版本会拒绝直接覆盖旧版本。请保留旧源码及构建，直到卸载和迁移完成。
 
 卸载计划与执行：
 
@@ -85,8 +86,9 @@ bun scripts/install.ts --project /absolute/path/to/test-project --remove --apply
 
 ```sh
 bun run scan
+bun run scan:release
 ```
 
-扫描只报告文件和规则名，不输出匹配密钥。扫描通过并不等于完整安全审计；发布前还需人工审查 staged diff、Git 历史与目标仓库。公开仓库创建、推送和 npm 发布须先确认具体目的地，当前没有执行这些动作。
+扫描只报告文件/对象、行号和规则名，不输出匹配密钥。`scan:release` 检查全部本地 Git 对象（含不可达历史）、提交/标签元数据、历史路径与当前 tracked/未忽略文件，完整清单写入不提交的 `artifacts/release-audit.json`。扫描通过并不等于完整安全审计；发布前仍需人工审查 staged diff、私人信息与目标仓库。公开仓库创建、推送和 npm 发布须先确认具体目的地，当前没有执行这些动作。完整公开范围和许可核查见 [发布准备](docs/RELEASE_PREPARATION.md)。
 
 [架构](docs/ARCHITECTURE.md) · [安全边界](docs/SECURITY.md) · [验证记录](docs/VERIFICATION.md)

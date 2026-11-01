@@ -15,6 +15,7 @@
     "test": "bun test tests",
     "demo": "bun scripts/demo.ts",
     "scan": "bun scripts/scan.ts",
+    "scan:release": "bun scripts/release-audit.ts",
     "test:integration": "bun scripts/integration.ts",
     "prepare:feishu": "bun scripts/prepare-feishu.ts"
   },
