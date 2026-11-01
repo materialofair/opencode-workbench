@@ -48,7 +48,7 @@ export async function resolveQuote(client:any,parent:string,options:{currentMess
     const type=msg.msg_type,body=msg.body?.content;
     if(typeof body!=='string')return unavailable('missing_body');
     const text=extractQuote(type,body);
-    if(text&&!placeholder(text))return {status:'available',source:'feishu_direct_parent',text};
+    if(text&&(type!=='interactive'||!placeholder(text)))return {status:'available',source:'feishu_direct_parent',text};
     // Read permission and exact message/chat identity were checked above. A
     // deleted or inaccessible remote message is never resurrected from cache.
     const cached=type==='interactive'?options.cache?.get(parent,options.chatID):undefined;
