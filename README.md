@@ -6,6 +6,8 @@ OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适�
 
 **当前为开发预览版 0.1.0，采用 MIT 许可，不提供 npm 发布包。** 源码目标仓库为 [materialofair/opencode-workbench](https://github.com/materialofair/opencode-workbench)。已验证的内容和未完成的真实环境验收见 [验证记录](docs/VERIFICATION.md)。
 
+**Windows 当前为代码适配预览，尚未完成 Windows 实机/Desktop 端到端验收。** 本机测试在 Mac 执行；云端 Windows CI 已通过核心测试，但完整后端重启恢复和 UI 验收尚未确认通过，详见 [Windows 验证边界](docs/WINDOWS.md)。
+
 ## 运行条件
 
 - OpenCode **1.19.5**：兼容 Desktop 的 Node sidecar 与 Bun CLI；SDK 与插件类型均固定到 1.19.5。

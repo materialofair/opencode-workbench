@@ -1,6 +1,6 @@
 # Windows 原生使用与验证
 
-目标平台为 Windows 10/11 x64、OpenCode 1.19.5、本地 NTFS 与本机默认浏览器。WSL 属于 Linux 环境，不能代替原生 Windows 验证。ARM64、网络共享状态目录、开启区分大小写的 NTFS 项目目录和便携式非 NTFS 状态盘目前不在支持范围。
+代码适配目标为 Windows 10/11 x64、OpenCode 1.19.5、本地 NTFS 与本机默认浏览器。当前为适配预览，**未完成 Windows 实机/Desktop 端到端验收**，不能当作已验证的 Windows 发行版。WSL 属于 Linux 环境，不能代替原生 Windows 验证。ARM64、网络共享状态目录、开启区分大小写的 NTFS 项目目录和便携式非 NTFS 状态盘目前不在支持范围。
 
 ## 安装、升级与卸载
 
@@ -72,5 +72,7 @@ bun run scan:release
 添加 workflow 不是 CI 已通过的证据；实际 runner 结果以 [GitHub Actions](https://github.com/materialofair/opencode-workbench/actions) 的具体运行链接为准。CI 的无头页面和后端测试也不能代替 Windows Desktop UI、默认浏览器实际启动、真实飞书收发或睡眠/关机验收。
 
 首轮原生 Windows runner 已发现实际差异：Bun 的默认延迟关闭仍占用 SQLite 文件，改为显式 finalize 和严格关闭，并新增关闭后立即重命名/重开的回归；浏览器行为验收改为 Node Playwright，以匹配 Desktop 并避免旧 Bun Windows 子进程管道的启动停滞。测试清理对 Windows 短时文件占用做有限重试，不跳过功能断言。最终是否通过仍以修复后的具体 CI 结果为准。
+
+截至 [f12ecb0 的 CI](https://github.com/materialofair/opencode-workbench/actions/runs/41303067963)，macOS 与 Ubuntu 24.04 整套通过；云端原生 Windows 核心 31 项全部通过，包括实际 DACL 和 SQLite 重命名回归。Windows 隔离后端已确认完成、等待审批和中止，重启恢复观测仍停留 submitted，UI 后续步骤因此未运行，所以整个 Windows job 失败。随后将恢复 fixture 改为读取宿主实际创建的唯一任务库，避免跨运行时 Windows 临时目录别名导致预测哈希定位到另一库；该调整尚未确认 Windows 重验通过。当前交付按 Mac 本机验证和 Windows 代码适配范围收尾，不以等待更多 Windows runner 作为使用或发布前提，也不隐去失败记录。
 
 参考：[Node Windows 权限限制](https://nodejs.org/api/fs.html#fschmodpath-mode-callback)、[文件 URL](https://nodejs.org/api/url.html#urlpathtofileurlpath-options)、[Microsoft icacls](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls)、[Bun 安装平台](https://bun.sh/docs/installation)。

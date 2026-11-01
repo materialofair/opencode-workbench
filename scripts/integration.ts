@@ -1,11 +1,10 @@
 // Isolated real OpenCode 1.19.5 backend + deterministic loopback model. Never
 // inherits the user's HOME, configuration, API keys or Feishu connection.
-import {mkdtempSync,mkdirSync,writeFileSync,existsSync,realpathSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,existsSync,realpathSync,readdirSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';
 import {createOpencodeClient} from '@opencode-ai/sdk/client';
 import {injectedHost} from '../src/host';import {Store} from '../src/store';import {Engine} from '../src/engine';
-import {projectID} from '../src/platform';
 const root=realpathSync(mkdtempSync(join(tmpdir(),'opencode-workbench-integration-')));const project=join(root,'project');mkdirSync(project,{recursive:true});
 let requests=0;
 const model=Bun.serve({hostname:'127.0.0.1',port:0,async fetch(req){
@@ -66,8 +65,15 @@ try{
   // Persist a completed session as an in-flight plugin run, then restart the
   // actual backend. This exercises plugin initialization and recovery re-entry.
   stage('restart');await engine.stop();store.close();store=undefined;engine=undefined;
-  const hash=projectID(project);
-  const pluginPath=join(root,'state','opencode-workbench',hash,'tasks.sqlite');
+  // Use the database actually created by this isolated host. Windows may
+  // canonicalize a temp profile's DOS 8.3 alias differently across runtimes;
+  // predicting a directory hash can inject the recovery fixture into a second,
+  // unused database and falsely report that recovery never ran.
+  const stateRoot=join(root,'state','opencode-workbench');
+  const databases=readdirSync(stateRoot,{withFileTypes:true}).filter(e=>e.isDirectory()&&existsSync(join(stateRoot,e.name,'tasks.sqlite')));
+  evidence.recoveryDatabaseCount=databases.length;
+  if(databases.length!==1)throw new Error('Expected exactly one isolated host task database');
+  const pluginPath=join(stateRoot,databases[0].name,'tasks.sqlite');
   const recoveryStore=new Store(pluginPath);
   const recoveryTask=recoveryStore.save({name:'Recovery fixture',prompt:'fixture-only completion',timezone:'UTC',schedule:{kind:'interval',minutes:60},enabled:false,misfire:'skip'});
   const recoveryRun=recoveryStore.claim(recoveryTask,'recovery-fixture','submitted')!;recoveryRun.sessionID=s;recoveryStore.putRun(recoveryRun);recoveryStore.close();
