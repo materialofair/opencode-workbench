@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-01",
+  "scope": "Fresh isolated installation of public source with scoped dependency overrides; existing live dependencies/configuration not replaced",
+  "originalHighDependencyNodes": 5,
+  "rootCauses": {
+    "toml": [
+      "GHSA-4qx8-w7c3-pj3p",
+      "GHSA-9j65-hcg3-gc64",
+      "GHSA-9qmh-m7c6-f92p"
+    ],
+    "zod": [
+      "GHSA-mrhx-c7xc-m3w5"
+    ]
+  },
+  "overrides": {
+    "@opencode-ai/plugin@1.19.5": {
+      "zod": "4.6.7"
+    },
+    "effect@4.0.0-beta.83": {
+      "toml": "5.0.1"
+    }
+  },
+  "audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "macTests": {
+    "passed": 32,
+    "skipped": 1,
+    "failed": 0
+  },
+  "isolatedOpenCode": {
+    "version": "1.19.5",
+    "usesRealCredentials": false,
+    "feishuMessagesSent": 0,
+    "completionStatus": "succeeded",
+    "approvalStatus": "waiting_approval",
+    "cancelStatus": "interrupted",
+    "restartRecoveredStatus": "succeeded",
+    "modelRequests": 2,
+    "success": true
+  },
+  "newDependencyRegression": {
+    "collectionElementVisitsWhenOversize": 0,
+    "bigIntConversionsWhenOversize": 0,
+    "effectConsumerCompatible": true,
+    "preservedFeishuSchemasCompatible": true
+  },
+  "bundledProductionJavaScriptUnchanged": true,
+  "zodAndTomlLicense": "MIT",
+  "licenseInventoryPackages": 114,
+  "notProofOfAbsenceOfUnknownVulnerabilities": true
+}

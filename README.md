@@ -6,7 +6,7 @@ OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适�
 
 **当前为开发预览版 0.1.0，采用 MIT 许可，不提供 npm 发布包。** 源码目标仓库为 [materialofair/opencode-workbench](https://github.com/materialofair/opencode-workbench)。已验证的内容和未完成的真实环境验收见 [验证记录](docs/VERIFICATION.md)。
 
-**Windows 当前为代码适配预览，尚未完成 Windows 实机/Desktop 端到端验收。** 本机测试在 Mac 执行；云端 Windows CI 已通过核心测试，但完整后端重启恢复和 UI 验收尚未确认通过，详见 [Windows 验证边界](docs/WINDOWS.md)。
+**Windows 当前为代码适配预览，尚未完成 Windows 实机/Desktop 端到端验收。** 本机测试在 Mac 执行；云端 Windows Server CI 已通过核心、后端恢复和无头 UI，这仍不等于 Windows 10/11 Desktop 实机验收，详见 [Windows 验证边界](docs/WINDOWS.md)。
 
 ## 运行条件
 
@@ -96,6 +96,6 @@ bun run scan:release
 
 扫描只报告文件/对象、行号和规则名，不输出匹配密钥。`scan:release` 检查全部本地 Git 对象（含不可达历史）、提交/标签元数据、历史路径与当前 tracked/未忽略文件，完整清单写入不提交的 `artifacts/release-audit.json`。扫描通过并不等于完整安全审计；发布前仍需人工审查 staged diff、私人信息与目标仓库。完整公开范围和许可核查见 [发布准备](docs/RELEASE_PREPARATION.md)。本项目的 GitHub CI 使用隔离 fixture，不读取个人配置、不调用真实模型或飞书、不发布 npm。
 
-锁定上游仍有已知的 [依赖安全告警](docs/DEPENDENCY_SECURITY.md)，当前预览版不能视为已完成生产安全验收。
+原有 5 个高危依赖节点已通过限定升级修复，新锁文件隔离安装的 npm audit 为 0 已知告警；[逐项核查与边界](docs/DEPENDENCY_SECURITY.md)明确区分项目依赖、既有客户端及实际可达性。当前预览版仍未完成生产安全验收。
 
 [架构](docs/ARCHITECTURE.md) · [安全边界](docs/SECURITY.md) · [验证记录](docs/VERIFICATION.md)

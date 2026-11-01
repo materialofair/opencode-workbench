@@ -185,6 +185,13 @@
     },
     {
       "package": "agent-base",
+      "version": "6.0.2",
+      "license": "MIT",
+      "dev": false,
+      "optional": true
+    },
+    {
+      "package": "agent-base",
       "version": "7.1.4",
       "license": "MIT",
       "dev": false,
@@ -200,20 +207,6 @@
     {
       "package": "axios",
       "version": "1.21.0",
-      "license": "MIT",
-      "dev": false,
-      "optional": true
-    },
-    {
-      "package": "axios/node_modules/agent-base",
-      "version": "6.0.2",
-      "license": "MIT",
-      "dev": false,
-      "optional": true
-    },
-    {
-      "package": "axios/node_modules/https-proxy-agent",
-      "version": "5.0.1",
       "license": "MIT",
       "dev": false,
       "optional": true
@@ -409,6 +402,13 @@
     },
     {
       "package": "https-proxy-agent",
+      "version": "5.0.1",
+      "license": "MIT",
+      "dev": false,
+      "optional": true
+    },
+    {
+      "package": "https-proxy-agent",
       "version": "7.0.6",
       "license": "MIT",
       "dev": false,
@@ -564,13 +564,6 @@
     {
       "package": "opencode-feishu",
       "version": "1.10.10",
-      "license": "MIT",
-      "dev": false,
-      "optional": true
-    },
-    {
-      "package": "opencode-feishu/node_modules/zod",
-      "version": "4.6.7",
       "license": "MIT",
       "dev": false,
       "optional": true
@@ -752,7 +745,7 @@
     },
     {
       "package": "toml",
-      "version": "4.3.0",
+      "version": "5.0.1",
       "license": "MIT",
       "dev": false,
       "optional": false
@@ -801,7 +794,7 @@
     },
     {
       "package": "zod",
-      "version": "4.1.8",
+      "version": "4.6.7",
       "license": "MIT",
       "dev": false,
       "optional": false

@@ -16,4 +16,4 @@ Windows 仅收紧插件自己的项目状态目录 ACL，不改变全局权限�
 
 `bun run scan` 为启发式公开文件扫描，`bun run scan:release` 另扫描全部本地 Git 对象、历史路径及提交元数据；两者不覆盖所有未知密钥格式，也不代替依赖漏洞审核或人工检查。
 
-锁定上游的 npm audit 目前有 5 个 high 依赖节点、0 critical，未强制覆盖宿主依赖；具体公告、范围和未修复状态见 [依赖安全告警](DEPENDENCY_SECURITY.md)。
+原锁文件的 5 个 high 节点已通过精确覆盖 Zod/TOML 叶子依赖消除，新锁文件干净安装的 npm audit 为 0；未替换宿主内置依赖或用户现用安装。逐项可达性、兼容测试与修复范围见 [依赖安全核查](DEPENDENCY_SECURITY.md)。

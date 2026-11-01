@@ -4,7 +4,7 @@
 
 ## 自动化与浏览器
 
-运行 `bun run build`、`bun run typecheck`、`bun test tests`。本机 macOS 当前共 32 项：31 通过、1 项仅限原生 Windows 的实际 ACL 检查跳过，0 失败。新增 Windows 分支测试不等于 Windows 真机通过；CI 结果另见 [Windows 说明](WINDOWS.md)。
+运行 `bun run build`、`bun run typecheck`、`bun test tests`。隔离的新依赖副本在本机 macOS 当前共 33 项：32 通过、1 项仅限原生 Windows 的实际 ACL 检查跳过，0 失败。新增 Windows 分支测试不等于 Windows 真机通过；CI 结果另见 [Windows 说明](WINDOWS.md)。
 
 | 范围 | 证据 |
 | --- | --- |
@@ -59,6 +59,6 @@
 - 真实模型供应商的长任务、断网/睡眠/关机后的端到端行为；自动化只模拟时钟和重启边界，不宣称能唤醒设备。
 - 真实飞书机器人长连接、卡片在线更新、权限按钮、附件和发送者授权检查。此次零真实飞书消息，既有连接未迁移。
 - Windows/Linux Desktop 真实界面、默认浏览器实际唤起和飞书实际连接；本机没有 Windows 环境，跨平台分支测试与 CI 不能代替这些验收。
-- 宿主自动审批模式、第三方工具绕过权限或恶意本机进程不由本插件提供独立沙箱。npm audit 已发现并记录 [锁定上游告警](DEPENDENCY_SECURITY.md)；完整依赖安全审计、外部渗透测试与大规模长期运行尚未完成。
+- 宿主自动审批模式、第三方工具绕过权限或恶意本机进程不由本插件提供独立沙箱。npm audit 原有告警已限定升级并在干净安装验证为 0，详见 [逐项核查](DEPENDENCY_SECURITY.md)；完整依赖安全审计、外部渗透测试与大规模长期运行尚未完成。
 
 当前预览不支持任意 cron、远端管理、内置审批、自动飞书推送、凭据管理、历史自动归档、多机部署或设备唤醒。这些不是已实现功能。
