@@ -1,0 +1,30 @@
+{
+  "desktopVersion": "1.19.5",
+  "pluginRuntime": "Node sidecar",
+  "actualDesktopUI": true,
+  "skillLoaded": true,
+  "dedicatedToolExecuted": true,
+  "defaultBrowser": "Comet",
+  "authenticatedManagementPageOpened": true,
+  "sampleScheduleUTC": "2026-11-01T10:21:52.362Z",
+  "sampleRunCreatedUTC": "2026-11-01T10:21:53.051000+00:00",
+  "sampleModel": {
+    "providerID": "openai",
+    "modelID": "gpt-6.1-sol"
+  },
+  "sampleResultObservedInDesktop": "DESKTOP_SCHEDULER_OK",
+  "runStatus": "succeeded",
+  "projectInstanceRestart": {
+    "oldPageDisconnected": true,
+    "newPortPageOpenedThroughTool": true,
+    "beforeRunCount": 1,
+    "afterRunCount": 1,
+    "runIdentityUnchanged": true,
+    "sessionIdentityUnchanged": true
+  },
+  "wholeDesktopProcessRestarted": false,
+  "existingConfigurationAndFeishuFilesUnchanged": true,
+  "feishuMessagesSent": 0,
+  "realFeishuRoundtripTested": false,
+  "privateSessionIDsAndPathsOmitted": true
+}

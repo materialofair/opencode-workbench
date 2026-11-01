@@ -1,6 +1,6 @@
 # OpenCode Workbench Local
 
-OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适配。React + TypeScript + Bun + SQLite，不修改打包的 OpenCode Desktop，也不另装常驻服务。
+OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适配。React + TypeScript + Node/Bun + SQLite，不修改打包的 OpenCode Desktop，也不另装常驻服务。
 
 对 OpenCode 说「打开定时任务管理」，Skill 调用 `open_task_manager`，默认浏览器打开当前项目的本机页面。页面支持创建、编辑、暂停/启用、删除、立即执行、查看历史及中止运行。
 
@@ -8,8 +8,8 @@ OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适�
 
 ## 运行条件
 
-- OpenCode **1.19.5** 的 Bun 插件运行时；SDK 与插件类型均固定到 1.19.5。
-- Bun 1.2.18 或兼容版本（本机测试版本）；开发安装也可使用 Node/npm，运行依赖 Bun。
+- OpenCode **1.19.5**：兼容 Desktop 的 Node sidecar 与 Bun CLI；SDK 与插件类型均固定到 1.19.5。
+- 开发构建使用 Bun 1.2.18 或兼容版本；Desktop 运行使用其已有的 Node SQLite，不要求额外 Bun 常驻进程。Node 运行时需支持 node:sqlite（Node 22.13+）。
 - 本机默认浏览器。每个项目独立页面、数据库与运行会话。
 - OpenCode 后端必须在运行。关闭窗口是否退出取决于 Desktop 行为；真正退出后不调度。休眠、关机时不保证准点执行，也不会唤醒设备。
 
@@ -32,9 +32,11 @@ UI 测试需要 Playwright Chromium。已有浏览器可通过 `PLAYWRIGHT_CHROM
 bun scripts/install.ts --project /absolute/path/to/test-project
 ```
 
-安装器只添加 `.opencode/plugins/workbench-tasks.ts` 与 `.opencode/skills/task-manager/SKILL.md`，不改写 opencode.json、模型配置、权限或现有飞书插件。先输出安装计划；加 `--apply` 才写入。加载新项目或重新打开该项目后对 OpenCode 说「打开定时任务管理」。插件通过绝对文件 URL 引用此源码目录，暂勿移动或删除源码。
+安装器只添加 `.opencode/plugins/workbench-tasks.js` 与 `.opencode/skills/task-manager/SKILL.md`，不改写 opencode.json、模型配置、权限或现有飞书插件。先输出安装计划；加 `--apply` 才写入。加载一个全新项目实例后对 OpenCode 说「打开定时任务管理」。插件通过带构建哈希的绝对文件 URL 引用此源码目录的 dist/plugin.js，暂勿移动或删除源码。
 
 需要所有项目可发现时用 `--global` 替代 `--project ...`，检查计划后加 `--apply`。这只安装任务管理器；**不会安装或启用第二个飞书连接**。已有同名文件且内容不同会拒绝覆盖。
+
+已被 Desktop 后端加载过的项目可能仍缓存旧插件；网页刷新或关闭标签页不会重建宿主实例。应在其他任务均结束后由本人退出并重新打开 Desktop，或使用明确限定该目录的宿主 instance.dispose；不要为试用直接重启正在承载飞书/其他任务的整个后端。
 
 可先看纯演示页面：
 
@@ -51,7 +53,7 @@ bun run demo
 - 单次：输入带 UTC 或明确偏移的 ISO 时间；IANA 时区用于显示。执行后自动停用。
 - 错过超过 60 秒视为 misfire。可选择跳过，或在 24 小时内合并补跑最新一次；更旧的不补跑。启用、编辑、保存会重算未来的下一次，**不会补跑编辑前的时刻**。
 - 并发最多 2 个，同一任务不重叠；繁忙时记录跳过，不堆积无界队列。
-- 每次运行创建新的宿主会话，沿用宿主默认 Agent 和模型。设为逐项 `ask`，保留全局及该 Agent 的 `deny`；不修改宿主配置，不默认放行外部操作。审批与问答在 OpenCode 对应会话完成，页面不提供「全部批准」。
+- 每次运行创建新的宿主会话，沿用宿主默认 Agent。模型默认沿用宿主，也可在「本任务模型」填写已配置的 Provider ID 和模型 ID，只影响该任务，不修改全局模型或凭据。设为逐项 `ask`，保留全局及该 Agent 的 `deny`；不修改宿主配置，不默认放行外部操作。审批与问答在 OpenCode 对应会话完成，页面不提供「全部批准」。
 - 自动审批模式或其他插件绕过宿主审核的情况不在本插件可保证范围内；不要在这些模式下使用涉及外部副作用的任务。详见 [安全边界](docs/SECURITY.md)。
 
 `已提交` 只表示宿主接受请求；`运行中`、`等待审批`、`等待回答`、`成功`、`失败`、`结果待确认` 分开记录。成功必须有宿主完成消息证据。网络中断、进程崩溃导致结果不明时不自动重发；先在 OpenCode 查验，必要时中止旧运行后手动执行。中止不能撤回已发生的外部操作。
@@ -64,7 +66,7 @@ bun run demo
 
 ## 升级、卸载和数据
 
-升级：退出使用该插件的 OpenCode 后端；备份项目数据库所在目录；在新源码目录重新安装依赖、构建和验证。数据库 schema 当前为 1，不支持自动降级。包装器引用原目录；原地升级可继续用原包装器，换目录需先用旧目录卸载再安装新包装器。
+升级：先用旧源码中的安装器卸载包装器，再退出使用该插件的 OpenCode 后端；备份项目数据库所在目录；在新源码目录重新安装依赖、构建、验证和安装。数据库 schema 当前为 1，不支持自动降级。包装器引用原目录；原地升级可继续用原包装器，换目录需先用旧目录卸载再安装新包装器。
 
 卸载计划与执行：
 

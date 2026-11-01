@@ -1,9 +1,10 @@
 import type { PluginInput } from '@opencode-ai/plugin';
+import type {ModelRef} from './schedule';
 import type { RunStatus } from './store';
 export type Snapshot = { status: RunStatus; note?: string };
 export interface Host {
-  create(title: string): Promise<string>;
-  submit(sessionID: string, prompt: string): Promise<void>;
+  create(title: string,model?:ModelRef): Promise<string>;
+  submit(sessionID: string, prompt: string,model?:ModelRef): Promise<void>;
   inspect(sessionID: string): Promise<Snapshot>;
   abort(sessionID: string): Promise<void>;
 }
@@ -27,7 +28,7 @@ export function injectedHost(ctx: Pick<PluginInput,'client'|'directory'>): Host 
   const query = {directory};
   const agentsBySession=new Map<string,string>();
   return {
-    async create(title) {
+    async create(title,model) {
       const c=await client.config.get({query,signal:AbortSignal.timeout(10000)});
       if(c.error || !c.data) throw new Error('无法读取宿主权限配置');
       const config=c.data as typeof c.data & {default_agent?:string};
@@ -37,7 +38,7 @@ export function injectedHost(ctx: Pick<PluginInput,'client'|'directory'>): Host 
       const selected=a.data.find(x=>x.name===agent);
       if(!selected)throw new Error('找不到宿主默认 Agent，未提交任务');
       const rules=[...reviewRules(config.permission),...reviewRules(selected.permission).filter(r=>r.action==='deny')];
-      const body={title,agent,permission:rules};
+      const body={title,agent,permission:rules,...(model?{model:{id:model.modelID,providerID:model.providerID}}:{})};
       // v1 SDK 1.19.5 omits permission in its TS declaration; the 1.19.5
       // backend accepts the v2 PermissionRuleset. Preserve host denies after ask.
       const r=await client.session.create({query,body,signal:AbortSignal.timeout(10000)});
@@ -45,8 +46,8 @@ export function injectedHost(ctx: Pick<PluginInput,'client'|'directory'>): Host 
       agentsBySession.set(r.data.id,agent);
       return r.data.id;
     },
-    async submit(id,prompt) {
-      const r=await client.session.promptAsync({path:{id},query,body:{agent:agentsBySession.get(id),parts:[{type:'text',text:prompt}]},signal:AbortSignal.timeout(10000)});
+    async submit(id,prompt,model) {
+      const r=await client.session.promptAsync({path:{id},query,body:{agent:agentsBySession.get(id),...(model?{model}:{}),parts:[{type:'text',text:prompt}]},signal:AbortSignal.timeout(10000)});
       agentsBySession.delete(id);
       if(r.error) throw new Error('OpenCode 未确认提交');
     },

@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { Database } from './sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';

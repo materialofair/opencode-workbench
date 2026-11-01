@@ -13,10 +13,11 @@
 
 ```sh
 npm ci --ignore-scripts
+bun run build
 bun scripts/prepare-feishu.ts
 ```
 
-只构建，不读取飞书配置，不连接机器人。可选入口为 `adapters/feishu/plugin.ts`，安装时将其文件 URL 添加到**你选定的隔离项目配置**；不要同时加载原有 `opencode-feishu`、旧 Desktop loader 和本入口。
+只构建，不读取飞书配置，不连接机器人。可选入口为构建后的 `adapters/feishu/plugin.js`，安装时将其文件 URL 添加到**你选定的隔离项目配置**；不要同时加载原有 `opencode-feishu`、旧 Desktop loader 和本入口。
 
 配置使用上游结构，必须在私有目录设置显式 `directory`：
 

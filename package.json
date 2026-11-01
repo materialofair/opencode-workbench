@@ -6,8 +6,8 @@
   "description": "Local scheduled tasks and optional Feishu integration for OpenCode",
   "license": "MIT",
   "exports": {
-    ".": "./src/plugin.ts",
-    "./feishu": "./adapters/feishu/plugin.ts"
+    ".": "./dist/plugin.js",
+    "./feishu": "./adapters/feishu/plugin.js"
   },
   "scripts": {
     "build": "bun scripts/build.ts",

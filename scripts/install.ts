@@ -1,13 +1,15 @@
 import {existsSync,readFileSync,mkdirSync,writeFileSync,unlinkSync,realpathSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {homedir} from 'node:os';import {join,dirname,resolve} from 'node:path';import {pathToFileURL,fileURLToPath} from 'node:url';
 const args=process.argv.slice(2);const projectIndex=args.indexOf('--project');const global=args.includes('--global'),apply=args.includes('--apply'),remove=args.includes('--remove');
 if(global===(projectIndex>=0))throw new Error('Choose exactly one: --project /absolute/path or --global');
 if(projectIndex>=0 && (!args[projectIndex+1] || args[projectIndex+1].startsWith('--')))throw new Error('Missing project path');
 const root=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
 const config=global?join(process.env.XDG_CONFIG_HOME||join(homedir(),'.config'),'opencode'):join(realpathSync(resolve(args[projectIndex+1])),'.opencode');
-const wrapper=`// Installed by OpenCode Workbench. Remove with the same install script.\nexport { TaskManager } from ${JSON.stringify(pathToFileURL(join(root,'src/plugin.ts')).href)};\n`;
-const files=[{path:join(config,'plugins','workbench-tasks.ts'),content:wrapper},{path:join(config,'skills','task-manager','SKILL.md'),content:readFileSync(join(root,'skills/task-manager/SKILL.md'),'utf8')}];
-if(!existsSync(join(root,'public','app.js')))throw new Error('Run bun run build first');
+const buildHash=createHash('sha256').update(readFileSync(join(root,'dist/plugin.js'))).digest('hex').slice(0,12);
+const wrapper=`// Installed by OpenCode Workbench. Remove with the same install script.\nexport { TaskManager } from ${JSON.stringify(pathToFileURL(join(root,'dist/plugin.js')).href+'?v='+buildHash)};\n`;
+const files=[{path:join(config,'plugins','workbench-tasks.js'),content:wrapper},{path:join(config,'skills','task-manager','SKILL.md'),content:readFileSync(join(root,'skills/task-manager/SKILL.md'),'utf8')}];
+if(!existsSync(join(root,'public','app.js')) || !existsSync(join(root,'dist','plugin.js')))throw new Error('Run bun run build first');
 // Preflight every target before any mutation. Never overwrite another installation.
 for(const f of files)if(existsSync(f.path)&&readFileSync(f.path,'utf8')!==f.content)throw new Error(`Existing file differs; preserve and review it before changing: ${f.path}`);
 console.log(JSON.stringify({mode:remove?'uninstall':'install',applied:apply,files:files.map(f=>f.path),changesExistingOpenCodeConfig:false,changesFeishu:false},null,2));

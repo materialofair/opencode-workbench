@@ -13,13 +13,14 @@ function executable(){
 test('React UI creates, edits, pauses, executes, shows approval, cancels and deletes safely',async()=>{
   const store=new Store(':memory:');let engine:Engine;
   const host={async create(){return 'ui-simulation-session';},async submit(id:string){setTimeout(()=>void engine.event({type:'permission.asked',properties:{sessionID:id}}),50);},async inspect(){return {status:'running' as const};},async abort(){}};
-  engine=new Engine(store,host);await engine.start();const server=startServer(engine,'/demo/test-project',true);
+  engine=new Engine(store,host);await engine.start();const server=await startServer(engine,'/demo/test-project',true);
   const browser=await chromium.launch({headless:true,executablePath:executable()});const page=await browser.newPage({viewport:{width:1280,height:1000}});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>void d.accept());
   try{
     await page.goto(server.url);await page.getByRole('button',{name:'＋ 新建任务',exact:true}).click();
     await page.getByLabel('任务名称',{exact:true}).fill('每日项目摘要');await page.getByLabel('执行指令',{exact:true}).fill('只读整理待办；不修改文件，不向外发送消息。');await page.getByLabel('IANA 时区',{exact:true}).fill('Asia/Shanghai');
+    await page.getByText('本任务模型（可选）',{exact:true}).click();await page.getByLabel('Provider ID',{exact:true}).fill('fixture-provider');await page.getByLabel('模型 ID',{exact:true}).fill('fixture-model');
     await page.getByRole('button',{name:'保存任务',exact:true}).click();await page.getByRole('heading',{name:'每日项目摘要',exact:true}).waitFor();
-    expect(store.tasks().length).toBe(1);expect(store.tasks()[0].timezone).toBe('Asia/Shanghai');
+    expect(store.tasks().length).toBe(1);expect(store.tasks()[0].timezone).toBe('Asia/Shanghai');expect(store.tasks()[0].model).toEqual({providerID:'fixture-provider',modelID:'fixture-model'});
     await page.getByRole('button',{name:'编辑',exact:true}).click();await page.getByLabel('任务名称',{exact:true}).fill('项目摘要 · 工作日');await page.getByRole('button',{name:'保存任务',exact:true}).click();await page.getByRole('heading',{name:'项目摘要 · 工作日',exact:true}).waitFor();
     await page.getByRole('button',{name:'暂停',exact:true}).click();await page.getByRole('button',{name:'启用',exact:true}).waitFor();expect(store.tasks()[0].enabled).toBe(false);
     await page.getByRole('button',{name:'启用',exact:true}).click();await page.getByRole('button',{name:'暂停',exact:true}).waitFor();

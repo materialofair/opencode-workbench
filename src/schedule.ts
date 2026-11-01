@@ -1,5 +1,6 @@
 export type Schedule = { kind: 'once'; at: string } | { kind: 'interval'; minutes: number } | { kind: 'daily'; time: string; weekdays: number[] };
-export type TaskInput = { name: string; prompt: string; timezone: string; schedule: Schedule; enabled: boolean; misfire: 'skip' | 'latest' };
+export type ModelRef = {providerID:string;modelID:string};
+export type TaskInput = { model?: ModelRef; name: string; prompt: string; timezone: string; schedule: Schedule; enabled: boolean; misfire: 'skip' | 'latest' };
 const formats = new Map<string, Intl.DateTimeFormat>();
 export function localParts(at: number, timezone: string) {
   let f = formats.get(timezone);
@@ -28,7 +29,12 @@ export function validate(value: unknown): TaskInput {
     if (typeof s.time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(s.time) || !Array.isArray(s.weekdays) || !s.weekdays.length || !s.weekdays.every(d => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('每天时间或星期无效');
     schedule = { kind: 'daily', time: s.time, weekdays: [...new Set(s.weekdays)].sort() };
   } else throw new Error('不支持的时间规则');
-  return { name: v.name.trim(), prompt: v.prompt, timezone: v.timezone, schedule, enabled: v.enabled, misfire: v.misfire };
+  let model:ModelRef|undefined;
+  if(v.model!==undefined){
+    if(!v.model || !['providerID','modelID'].every(k=>typeof (v.model as any)[k]==='string' && (v.model as any)[k].trim().length>0 && (v.model as any)[k].length<=200 && !/[\u0000-\u001f]/.test((v.model as any)[k])))throw new Error('模型需同时填写有效的 Provider ID 与模型 ID');
+    model={providerID:v.model.providerID.trim(),modelID:v.model.modelID.trim()};
+  }
+  return { name: v.name.trim(), prompt: v.prompt, timezone: v.timezone, schedule, enabled: v.enabled, misfire: v.misfire, ...(model?{model}:{}) };
 }
 // Daily wall-clock schedules skip nonexistent DST times and run once on repeated dates.
 export function nextAt(s: Schedule, zone: string, after: number, anchor = after): number | null {

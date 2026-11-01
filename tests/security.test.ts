@@ -2,9 +2,9 @@ import {test,expect} from 'bun:test';
 import {createOpencodeClient} from '@opencode-ai/sdk/client';
 import {injectedHost,reviewRules} from '../src/host';
 import {Engine} from '../src/engine';import {Store} from '../src/store';import {startServer} from '../src/server';
-function fixture(){const store=new Store(':memory:');const host={async create(){return 'session';},async submit(){},async inspect(){return {status:'running' as const};},async abort(){}};const engine=new Engine(store,host);const page=startServer(engine,'/test-project');const u=new URL(page.url);return {store,engine,page,url:u.origin,token:u.hash.slice(1)};}
+async function fixture(){const store=new Store(':memory:');const host={async create(){return 'session';},async submit(){},async inspect(){return {status:'running' as const};},async abort(){}};const engine=new Engine(store,host);const page=await startServer(engine,'/test-project');const u=new URL(page.url);return {store,engine,page,url:u.origin,token:u.hash.slice(1)};}
 test('API denies missing token, foreign origin, absent CSRF and spoofed Host; serves no CORS',async()=>{
-  const f=fixture();const headers={Authorization:`Bearer ${f.token}`};
+  const f=await fixture();const headers={Authorization:`Bearer ${f.token}`};
   try {
     expect((await fetch(f.url+'/api/state')).status).toBe(401);
     expect((await fetch(f.url+'/api/state',{headers:{...headers,Origin:'https://evil.test'}})).status).toBe(403);
@@ -18,7 +18,7 @@ test('API denies missing token, foreign origin, absent CSRF and spoofed Host; se
   }finally{f.page.stop();await f.engine.stop();f.store.close();}
 });
 test('CRUD and idempotent API execution with real SQLite and HTTP',async()=>{
-  const f=fixture();const headers={Authorization:`Bearer ${f.token}`,'X-Task-CSRF':f.token,Origin:f.url,'Content-Type':'application/json'};
+  const f=await fixture();const headers={Authorization:`Bearer ${f.token}`,'X-Task-CSRF':f.token,Origin:f.url,'Content-Type':'application/json'};
   const input={name:'<img src=x onerror=alert(1)>',prompt:'Read only',timezone:'Asia/Shanghai',schedule:{kind:'interval',minutes:5},enabled:true,misfire:'skip'};
   try {
     const created=await fetch(f.url+'/api/tasks',{method:'POST',headers,body:JSON.stringify(input)});expect(created.status).toBe(201);const t=await created.json();
@@ -37,9 +37,9 @@ test('injected SDK preserves backend authentication/directory and installs ask p
     const value=p==='/config'?{permission:{bash:{'*':'allow','rm *':'deny'},edit:'deny'}}:p==='/agent'?[{name:'build',permission:[]}]:p==='/session'?{id:'session-test'}:undefined;
     return value?Response.json(value):new Response(null,{status:204});
   }});
-  const host=injectedHost({client,directory:'/fixture-project'});const sid=await host.create('Fixture');await host.submit(sid,'Read');
+  const host=injectedHost({client,directory:'/fixture-project'});const model={providerID:'fixture-provider',modelID:'fixture-model'};const sid=await host.create('Fixture',model);await host.submit(sid,'Read',model);
   expect(requests.length).toBe(4);for(const req of requests){expect(req.headers.get('authorization')).toBe('Bearer simulation-only');expect(new URL(req.url).searchParams.get('directory')).toBe('/fixture-project');}
-  const create=await requests[2].json();expect(create.permission).toEqual(reviewRules({bash:{'*':'allow','rm *':'deny'},edit:'deny'}));
+  const create=await requests[2].json();expect(create.model).toEqual({id:'fixture-model',providerID:'fixture-provider'});expect((await requests[3].json()).model).toEqual(model);expect(create.permission).toEqual(reviewRules({bash:{'*':'allow','rm *':'deny'},edit:'deny'}));
   expect(create.permission.some((x:any)=>x.action==='allow')).toBe(false);
 });
 test('v2 agent rule arrays preserve only their actual deny rules',()=>{

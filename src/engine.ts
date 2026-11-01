@@ -69,10 +69,10 @@ export class Engine {
   async dispatch(r:Run,t:Task) {
     if(this.stopped || !this.store.lease(this.owner,this.now())) { this.update(r,'interrupted','调度已停止或所有权改变，未提交'); return; }
     try {
-      r.sessionID=await this.host.create(`定时任务 · ${t.name} · ${r.id.slice(0,8)}`);
+      r.sessionID=await this.host.create(`定时任务 · ${t.name} · ${r.id.slice(0,8)}`,t.model);
       if(this.stopped || !this.store.lease(this.owner,this.now())) { this.update(r,'interrupted','调度停止或所有权改变，未提交指令'); return; }
       this.update(r,'submitted','已创建会话，正在提交指令');
-      await this.host.submit(r.sessionID,t.prompt);
+      await this.host.submit(r.sessionID,t.prompt,t.model);
       // Events may have already moved the persisted run forward. Never downgrade.
       const current=this.store.active().find(x=>x.id===r.id);
       if(current?.status==='submitted') this.update(current,'submitted','宿主已接受；等待运行证据');

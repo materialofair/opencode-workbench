@@ -1,6 +1,8 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { Engine } from './engine';
+import {createServer} from 'node:http';
+import {readFileSync} from 'node:fs';
 const assets = new URL('../public/',import.meta.url);
 const sharedHeaders = { 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff', 'Referrer-Policy':'no-referrer', 'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'", 'Cross-Origin-Resource-Policy':'same-origin', 'X-Frame-Options':'DENY' };
 function equal(a:string,b:string) { const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length && timingSafeEqual(x,y); }
@@ -10,13 +12,13 @@ async function body(req:Request) {
   while(true) { const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>65536){await reader.cancel();throw new Error('请求内容过大');}chunks.push(r.value); }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
-export function startServer(engine:Engine, directory:string, demo=false) {
+export async function startServer(engine:Engine, directory:string, demo=false) {
   const token=randomBytes(32).toString('base64url');
   const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{...sharedHeaders,'Content-Type':'application/json; charset=utf-8'}});
-  const server=Bun.serve({hostname:'127.0.0.1',port:0,maxRequestBodySize:65536,idleTimeout:10,
-    async fetch(req) {
-      const u=new URL(req.url); const origin=`http://127.0.0.1:${server.port}`;
-      if(u.origin!==origin || req.headers.get('host')!==`127.0.0.1:${server.port}`) return json({error:'Host rejected'},403);
+  let port=0;
+  async function handle(req:Request) {
+      const u=new URL(req.url); const origin=`http://127.0.0.1:${port}`;
+      if(u.origin!==origin || req.headers.get('host')!==`127.0.0.1:${port}`) return json({error:'Host rejected'},403);
       const suppliedOrigin=req.headers.get('origin');
       if(suppliedOrigin && suppliedOrigin!==origin) return json({error:'Origin rejected'},403);
       if(req.headers.get('sec-fetch-site')==='cross-site') return json({error:'Cross-site request rejected'},403);
@@ -48,9 +50,21 @@ export function startServer(engine:Engine, directory:string, demo=false) {
       if(req.method!=='GET')return json({error:'Method rejected'},405);
       const names:Record<string,[string,string]>={'/':['index.html','text/html; charset=utf-8'],'/app.js':['app.js','text/javascript; charset=utf-8'],'/style.css':['style.css','text/css; charset=utf-8']};
       const asset=names[u.pathname]; if(!asset)return json({error:'Not found'},404);
-      return new Response(Bun.file(fileURLToPath(new URL(asset[0],assets))),{headers:{...sharedHeaders,'Content-Type':asset[1]}});
-    },
-    error() {return json({error:'本地服务请求失败'},500);}
+      return new Response(readFileSync(fileURLToPath(new URL(asset[0],assets))),{headers:{...sharedHeaders,'Content-Type':asset[1]}});
+  }
+  const server=createServer(async(incoming,outgoing)=>{
+    try {
+      const chunks:Buffer[]=[];let size=0;
+      if(Number(incoming.headers['content-length']??0)>65536){outgoing.writeHead(413);outgoing.end();incoming.resume();return;}
+      for await(const chunk of incoming){const b=Buffer.from(chunk);size+=b.length;if(size>65536){outgoing.writeHead(413);outgoing.end();return;}chunks.push(b);}
+      const method=incoming.method??'GET';
+      const headers=new Headers();for(const [name,value] of Object.entries(incoming.headers)){if(Array.isArray(value))for(const item of value)headers.append(name,item);else if(value!==undefined)headers.set(name,value);}
+      const request=new Request(`http://127.0.0.1:${port}${incoming.url??'/'}`,{method,headers,...(!['GET','HEAD'].includes(method)?{body:Buffer.concat(chunks)}:{})});
+      const response=await handle(request);outgoing.writeHead(response.status,Object.fromEntries(response.headers));outgoing.end(Buffer.from(await response.arrayBuffer()));
+    }catch{if(!outgoing.headersSent)outgoing.writeHead(500,sharedHeaders);outgoing.end();}
   });
-  return {server,url:`http://127.0.0.1:${server.port}/#${token}`,stop:()=>server.stop(true)};
+  server.requestTimeout=15000;server.headersTimeout=10000;
+  await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',()=>{server.off('error',reject);resolve();});});
+  port=(server.address() as {port:number}).port;
+  return {server,url:`http://127.0.0.1:${port}/#${token}`,stop:()=>{server.closeAllConnections();server.close();}};
 }
