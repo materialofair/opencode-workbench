@@ -12,6 +12,8 @@ OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适�
 
 - OpenCode **1.19.5**：兼容 Desktop 的 Node sidecar 与 Bun CLI；SDK 与插件类型均固定到 1.19.5。
 - 开发构建使用 Bun 1.2.18 或兼容版本；Desktop 运行使用其已有的 Node SQLite，不要求额外 Bun 常驻进程。Node 运行时需支持 node:sqlite（Node 22.13+）。
+- 源码安装还需要 Git、npm 和受支持的 Node；CI 固定 **22.22.2**。锁文件中的 ini 7 要求 `^22.22.2 || ^24.15.0 || >=26.0.0`，Node 25 不满足该开发依赖声明；SQLite 运行下限不是完整开发依赖下限。
+- 旧任务只读采集器需要 **Python 3.10+**（macOS/Linux 的 `python3`，Windows 的 `py -3`）；纯管理页面不依赖 Python。
 - 本机默认浏览器。每个项目独立页面、数据库与运行会话。
 - Windows 10/11 x64 原生环境使用本地 NTFS 状态目录，支持中文和空格路径。Windows 安装、ACL、测试层级及限制见 [Windows 使用说明](docs/WINDOWS.md)；没有用 macOS 上的 Windows 分支测试冒充原生 Windows 验收。
 - OpenCode 后端必须在运行。关闭窗口是否退出取决于 Desktop 行为；真正退出后不调度。休眠、关机时不保证准点执行，也不会唤醒设备。
@@ -26,6 +28,7 @@ cd opencode-workbench
 npm ci --ignore-scripts
 bun run build
 bun run typecheck
+bunx playwright install chromium
 bun test tests
 ```
 
@@ -81,7 +84,7 @@ bun scripts/install.ts --project /absolute/path/to/test-project --remove
 bun scripts/install.ts --project /absolute/path/to/test-project --remove --apply
 ```
 
-仅删除安装器内容完全匹配的两个文件。全局用 `--global --remove`；不会删除其他插件或任何数据库，也不会还原/修改飞书配置。退出后插件停止；卸载不会自动中止已交给宿主执行的会话，请先在页面中止需要停止的运行。
+仅删除安装器内容完全匹配的四个文件（插件包装器、两个 Skill 和采集器）。全局用 `--global --remove`；不会删除其他插件或任何数据库，也不会还原/修改飞书配置。退出后插件停止；卸载不会自动中止已交给宿主执行的会话，请先在页面中止需要停止的运行。
 
 macOS/Linux 数据默认保存在 `${XDG_STATE_HOME:-~/.local/state}/opencode-workbench/<项目真实路径的哈希>/tasks.sqlite`；Windows 默认使用 `%LOCALAPPDATA%/opencode-workbench/<项目路径哈希>/tasks.sqlite`，显式 `XDG_STATE_HOME` 优先。POSIX 目录权限 0700、数据库 0600；Windows 对插件自己的项目状态目录设置当前用户及 SYSTEM 的 ACL，失败则不启动调度，不把 chmod 当成 Windows 访问控制。SQLite 使用 WAL，只支持本地文件系统。退出后一起备份整个项目状态目录，或用 SQLite 在线 backup，勿在运行中单独复制 db 而漏掉 WAL。数据库包含你输入的指令和运行元数据，**不要提交**。删除任务保留历史快照；页面只显示最近 1000 条，当前版本不会自动清理全部历史。
 
@@ -103,3 +106,5 @@ bun run scan:release
 ## 导入已有定时任务
 
 对 OpenCode 说「只读识别这台电脑已有的定时任务并预览导入」，使用 `import-scheduled-tasks` Skill。先核实实际来源、项目、时区与执行语义，再调用 `import_scheduled_tasks` 工具（默认 dry-run）；管理页也可粘贴统一清单进行预览。支持来源标识、可解释的重复/冲突检测、幂等提交，导入全部禁用且不修改旧调度。启用前须明确选择 Workbench 执行者，核实旧调度避免双重执行。未知插件、复杂 cron、launchd / Windows 执行上下文差异会阻止自动导入，不能把未知当作空任务。详见 [导入接口与转换边界](docs/IMPORT_TASKS.md)。
+
+其他电脑首次部署、依赖检查和分层验收见 [新机器检查清单](docs/NEW_MACHINE.md)。

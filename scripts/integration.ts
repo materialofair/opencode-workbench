@@ -5,7 +5,8 @@ import {pathToFileURL} from 'node:url';
 import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';
 import {createOpencodeClient} from '@opencode-ai/sdk/client';
 import {injectedHost} from '../src/host';import {Store} from '../src/store';import {Engine} from '../src/engine';
-const root=realpathSync(mkdtempSync(join(tmpdir(),'opencode-workbench-integration-')));const project=join(root,'project');mkdirSync(project,{recursive:true});
+const installedProject=process.argv.includes('--installed-project');
+const root=realpathSync(mkdtempSync(join(tmpdir(),'opencode-workbench-integration-')));const project=join(root,installedProject?'项目 A #1':'project');mkdirSync(project,{recursive:true});
 let requests=0;
 const model=Bun.serve({hostname:'127.0.0.1',port:0,async fetch(req){
   if(!new URL(req.url).pathname.endsWith('/chat/completions'))return Response.json({error:'Fixture endpoint only'},{status:404});
@@ -20,12 +21,16 @@ const model=Bun.serve({hostname:'127.0.0.1',port:0,async fetch(req){
 }});
 const config=join(root,'config','opencode');mkdirSync(config,{recursive:true});
 const plugin=pathToFileURL(resolve('dist/plugin.js')).href;
-writeFileSync(join(config,'opencode.json'),JSON.stringify({plugin:[plugin],model:'fixture/mock',permission:{'*':'ask',edit:'deny'},provider:{fixture:{npm:'@ai-sdk/openai-compatible',name:'Local fixture',options:{baseURL:`http://127.0.0.1:${model.port}/v1`,apiKey:'fixture-only'},models:{mock:{name:'Fixture',limit:{context:8192,output:1024}}}}}}));
+writeFileSync(join(config,'opencode.json'),JSON.stringify({plugin:installedProject?[]:[plugin],model:'fixture/mock',permission:{'*':'ask',edit:'deny'},provider:{fixture:{npm:'@ai-sdk/openai-compatible',name:'Local fixture',options:{baseURL:`http://127.0.0.1:${model.port}/v1`,apiKey:'fixture-only'},models:{mock:{name:'Fixture',limit:{context:8192,output:1024}}}}}}));
 const env:Record<string,string>={PATH:process.env.PATH??'/usr/bin:/bin',HOME:join(root,'home'),XDG_CONFIG_HOME:join(root,'config'),XDG_DATA_HOME:join(root,'data'),XDG_CACHE_HOME:join(root,'cache'),XDG_STATE_HOME:join(root,'state'),TMPDIR:tmpdir(),OPENCODE_DISABLE_DEFAULT_PLUGINS:'true',OPENCODE_DISABLE_MODELS_FETCH:'true',OPENCODE_SERVER_PASSWORD:'fixture-private-password',OPENCODE_SERVER_USERNAME:'fixture'};
 if(process.platform==='win32')Object.assign(env,{SystemRoot:process.env.SystemRoot??process.env.SYSTEMROOT??'',WINDIR:process.env.WINDIR??'',COMSPEC:process.env.COMSPEC??'',USERPROFILE:env.HOME,APPDATA:join(root,'appdata'),LOCALAPPDATA:join(root,'localappdata'),TEMP:tmpdir(),TMP:tmpdir()});
 mkdirSync(env.HOME,{recursive:true});
 const binary=process.env.WORKBENCH_OPENCODE_BIN || resolve(`node_modules/opencode-${process.platform==='win32'?'windows':process.platform}-${process.arch}/bin/opencode${process.platform==='win32'?'.exe':''}`);
 if(!existsSync(binary))throw new Error('Set WORKBENCH_OPENCODE_BIN to the pinned 1.19.5 test binary for your platform');
+if(installedProject){
+  const installed=Bun.spawnSync([process.execPath,'scripts/install.ts','--project',project,'--apply'],{stdout:'pipe',stderr:'pipe'});
+  if(installed.exitCode!==0)throw new Error('Isolated project installer failed');
+}
 async function startBackend() {
   const process=Bun.spawn([binary,'serve','--port','0','--hostname','127.0.0.1'],{cwd:project,env,stdout:'pipe',stderr:'pipe'});
   let output='';
@@ -34,7 +39,7 @@ async function startBackend() {
   for(let i=0;i<600;i++){const match=output.match(/http:\/\/127\.0\.0\.1:\d+/);if(match)return {process,url:match[0]};await Bun.sleep(50);}
   process.kill('SIGKILL');throw new Error('Isolated backend failed to start');
 }
-const evidence:Record<string,unknown>={version:'1.19.5',isolated:true,usesRealCredentials:false,model:'loopback fixture',feishuMessagesSent:0};
+const evidence:Record<string,unknown>={version:'1.19.5',isolated:true,installedProject,usesRealCredentials:false,model:'loopback fixture',feishuMessagesSent:0};
 const stage=(value:string)=>{evidence.stage=value;console.log('Integration stage: '+value);};
 stage('backend-start');let launched=await startBackend();
 const watchdog=setTimeout(()=>{evidence.success=false;evidence.error='Integration timeout at '+evidence.stage;mkdirSync('artifacts',{recursive:true});writeFileSync('artifacts/opencode-integration.json',JSON.stringify(evidence,null,2)+'\n');launched.process.kill('SIGKILL');model.stop(true);console.error(evidence.error);process.exit(1);},180000);

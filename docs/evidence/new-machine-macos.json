@@ -1,0 +1,63 @@
+{
+  "sourceCommit": "2da0d5bf8b155e7dee24ff4efc30dcad476f534e",
+  "source": "fresh public HTTPS clone, new npm node_modules",
+  "localOS": "macOS Apple Silicon",
+  "localNode": "25.9.0 (ini engine warning; unsupported development version)",
+  "bun": "1.2.18",
+  "coreAndUI": {
+    "passed": 50,
+    "skippedNativeWindowsACL": 1,
+    "failed": 0
+  },
+  "freshDownloadedChromiumUI": {
+    "passed": 1,
+    "failed": 0,
+    "build": 1194
+  },
+  "browserChain": {
+    "version": "1.19.5",
+    "realOpenCode": true,
+    "realHeadlessChromium": true,
+    "mode": "full-chain",
+    "feishuTransport": "in-memory SDK mock",
+    "browserSkillTransport": "test-only CLI protocol fixture",
+    "realCredentialsUsed": false,
+    "realFeishuMessagesSent": 0,
+    "quotedCardTextObserved": true,
+    "nativePermissionCards": 4,
+    "modelRequests": 9,
+    "browserActions": [
+      "start",
+      "navigate",
+      "sync",
+      "fill",
+      "sync",
+      "click",
+      "sync",
+      "stop"
+    ],
+    "ownedSessionsRemaining": 0,
+    "feishuResultObserved": true,
+    "originalMappedDestinationOnly": true,
+    "success": true
+  },
+  "realMessagesSent": 0,
+  "productionConfigurationChanged": false,
+  "userQuoteConfirmation": "reported working by user; no private content read for audit",
+  "limits": [
+    "Not a second physical machine",
+    "No native Windows Desktop",
+    "No real Feishu SDK transport or BrowserSkill CLI in this chain",
+    "No real cloud model; per-user configuration still required"
+  ],
+  "installedProjectIntegration": {
+    "installedProject": true,
+    "pluginLoaded": true,
+    "completionStatus": "succeeded",
+    "approvalStatus": "waiting_approval",
+    "cancelStatus": "interrupted",
+    "restartRecoveredStatus": "succeeded",
+    "modelRequests": 2,
+    "success": true
+  }
+}

@@ -4,6 +4,8 @@
 
 ## 安装、升级与卸载
 
+旧任务只读采集器和完整测试还需要 Python 3.10+，并可通过 `py -3 --version` 调用；管理页面本身不需要 Python。
+
 开发机需要 Git、Node 22.22.2+ 的受支持 LTS 分支（CI 固定 22.22.2）和 Bun（CI 固定 1.2.18）。Node 内置 SQLite 自身的下限是 22.13，但锁定的开发依赖 ini 7 要求更高的受支持 Node 版本，因此开发安装使用 22.22.2。使用各自官方安装来源；不需要更改 PowerShell execution policy、防火墙、全局 OpenCode 安全权限，也不创建开机服务。Desktop 使用其自身带有 node:sqlite 的 Node sidecar，构建工具不会替换 Desktop 的运行时。
 
 PowerShell 示例；`npm.cmd` 可避免 PowerShell 将命令解析到 npm.ps1：
@@ -18,7 +20,7 @@ bun scripts/install.ts --project "C:\Code\项目 A"
 bun scripts/install.ts --project "C:\Code\项目 A" --apply
 ```
 
-项目目录须已经存在。先检查 dry-run；安装器仅新增两个自身文件，不修改模型、飞书配置或权限。包装器使用 `pathToFileURL` 生成带构建哈希的绝对文件 URL，正确编码盘符、中文、空格、`#`；不要移动源码目录。在 OpenCode 加载该项目的新实例，再说「打开定时任务管理」。如果原实例仍缓存旧插件，等其他工作结束后重开 Desktop；不要在飞书会话或其他任务进行中重启后端。
+项目目录须已经存在。先检查 dry-run；安装器仅新增四个自身文件（插件包装器、两个 Skill 和 Python 采集器），不修改模型、飞书配置或权限。包装器使用 `pathToFileURL` 生成带构建哈希的绝对文件 URL，正确编码盘符、中文、空格、`#`；不要移动源码目录。在 OpenCode 加载该项目的新实例，再说「打开定时任务管理」。如果原实例仍缓存旧插件，等其他工作结束后重开 Desktop；不要在飞书会话或其他任务进行中重启后端。
 
 升级仍须先使用旧源码/旧构建卸载，然后停止宿主并备份整个状态目录，再更新、构建和安装。原地更新也不能省略这个顺序；安装器拒绝覆盖内容不匹配的文件。
 
@@ -81,3 +83,5 @@ bun run scan:release
 
 
 本轮浏览器整链 CI 曾在插件注册阶段失败（[7f71a7a 探针](https://github.com/materialofair/opencode-workbench/actions/runs/41314455076)）：Node 与原生宿主把同一 NTFS 目录分别表示为 8.3 短路径和长路径，字符串 owner 不同，但 dev/ino 相同。浏览器和飞书 owner 检查现增加精确物理目录校验，仅在设备与文件标识均有效、相等且均为目录时接受 Windows 别名；不同设备/目录、零标识或读取失败仍拒绝。不改变已有任务库哈希/迁移数据，不把前缀相似当同一项目。修复后的实际运行状态以对应提交的 CI 为准，不能将该历史失败描述为已通过。
+
+当前功能基线 [2da0d5b / run 41322702816](https://github.com/materialofair/opencode-workbench/actions/runs/41322702816) 的 Windows、macOS、Ubuntu 均成功。Windows Server 2025 的核心 50 项、单独 UI、真实 OpenCode 恢复和隔离飞书浏览器链路均通过；飞书与 BrowserSkill 传输为替身，Chromium 为真实无头浏览器。此结果不覆盖 Windows 10/11 Desktop、真实扩展、机器人或云模型。

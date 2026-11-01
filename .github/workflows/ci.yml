@@ -26,7 +26,7 @@ jobs:
       - run: bun run typecheck
       - name: Core and native runtime tests
         run: bun test tests/engine.test.ts tests/feishu.test.ts tests/install.test.ts tests/node-runtime.test.ts tests/platform.test.ts tests/schedule.test.ts tests/security.test.ts tests/sqlite.test.ts tests/dependencies.test.ts tests/browser.test.ts tests/browser-install.test.ts tests/quote.test.ts tests/import.test.ts tests/collector.test.ts
-      - run: bun run test:integration
+      - run: bun run test:integration --installed-project
       - name: Browser plugin load before browser installation
         run: bun scripts/browser-fixture-build.ts && node .data/browser-chain.js --load-only
       - run: bunx playwright install --with-deps chromium

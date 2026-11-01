@@ -5,7 +5,7 @@
   "errors": 0,
   "configurationAndOtherComponentsUnchanged": true,
   "quoteOnlyFixLoadedAfterIdleRestart": true,
-  "realUserReplyRetest": "earlier default-read legacy-card test did not recover text; raw-card query now verified and loaded; client repeat retest pending",
+  "realUserReplyRetest": "user confirmed quote recognition works after raw-card query fix; no private content collected in portability audit",
   "newScopesRequired": false,
   "rawWebsocketEventRetained": false,
   "realFeishuMessagesSentByThisTest": 0,
@@ -28,6 +28,6 @@
     "exactStoredAssistantTextMatch": true,
     "newPermissionsRequired": false,
     "loadedAfterIdleRestart": true,
-    "clientRepeatRetest": "pending"
+    "clientRepeatRetest": "user-confirmed working; not independent new-machine verification"
   }
 }

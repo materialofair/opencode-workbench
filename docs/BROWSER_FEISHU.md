@@ -4,7 +4,7 @@
 
 ## 依赖与版权
 
-使用 OpenCode 1.19.5、Bun 1.2.18、独立安装的 Tencent BrowserSkill CLI/daemon/Chrome 扩展 **0.4.0**。官方三个 v0.4.0 tag 固定到 `7e300ff6a35b326ac9abd03f315f30769ad01861`，其根许可证为 MIT，Copyright (c) 2026 Tencent。见 [固定版本许可证](../third-party/browser-skill/LICENSE) 与 [来源](../third-party/browser-skill/provenance.json)。本仓库提供原创互操作适配和流程 Skill；不分发 CLI、扩展、图标、第三方依赖或本机私人 Skill。BrowserSkill 本身及其浏览器权限按上游说明单独安装、授权和检查，不通过本插件扩大权限。
+使用 OpenCode 1.19.5、Bun 1.2.18、独立安装的 [Tencent BrowserSkill 固定版本安装说明](https://github.com/Tencent/BrowserSkill/blob/7e300ff6a35b326ac9abd03f315f30769ad01861/README.md#quick-start) 中的 Tencent BrowserSkill CLI/daemon/Chrome 扩展 **0.4.0**。官方三个 v0.4.0 tag 固定到 `7e300ff6a35b326ac9abd03f315f30769ad01861`，其根许可证为 MIT，Copyright (c) 2026 Tencent。见 [固定版本许可证](../third-party/browser-skill/LICENSE) 与 [来源](../third-party/browser-skill/provenance.json)。本仓库提供原创互操作适配和流程 Skill；不分发 CLI、扩展、图标、第三方依赖或本机私人 Skill。BrowserSkill 本身及其浏览器权限按上游说明单独安装、授权和检查，不通过本插件扩大权限。
 
 ## 安装与配置
 
@@ -48,3 +48,5 @@ bun scripts/install-browser.ts --project /absolute/project --remove --apply
 ```
 
 安全重载该项目宿主后生效。私人配置、现有飞书机器人、BrowserSkill 安装及其数据都保留。该卸载不会撤销已发生的外部操作。
+
+首次部署必须由本人先完成上游 CLI、daemon 和 Chrome/Edge 扩展安装及连接授权，核对 CLI/daemon/扩展均为 0.4.0，再用 `bsk status --json` 核查明确实例。商店或 latest 安装可能已经是其他版本；本适配严格拒绝版本不匹配，应使用固定版本或另行做兼容验证，不通过禁用版本/安全检查解决。没有 bsk 或扩展仅能运行替身测试，不能执行真实浏览器任务。样例 actions 只含 navigate；若本人需要填表/点击，应逐项加入 fill/click/press 并保留每次宿主审批。
