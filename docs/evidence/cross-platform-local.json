@@ -4,8 +4,8 @@
   "bun": "1.2.18",
   "nativeWindowsEnvironmentAvailable": false,
   "automatedTests": {
-    "total": 31,
-    "passed": 30,
+    "total": 32,
+    "passed": 31,
     "skipped": 1,
     "failed": 0,
     "skipReason": "Actual Windows DACL check is Windows-only"
@@ -18,7 +18,8 @@
     "Unicode/space project installation and removal",
     "symbolic link / junction installation refusal",
     "Windows directory SDK query encoding",
-    "compiled Feishu loader with a local stub"
+    "compiled Feishu loader with a local stub",
+    "explicit SQLite close, immediate rename and reopen"
   ],
   "isolatedOpenCode": {
     "version": "1.19.5",

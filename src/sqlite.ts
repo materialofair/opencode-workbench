@@ -7,6 +7,8 @@ type Statement={get:(...v:Value[])=>unknown;all:(...v:Value[])=>unknown[];run:(.
 export class Database {
   private native:any;
   private bun:boolean;
+  private statements=new Set<any>();
+  private closed=false;
   constructor(path:string,_options?:{create:boolean}){
     this.bun=typeof (globalThis as any).Bun!=='undefined';
     const Runtime=this.bun?require('bun:sqlite').Database:require('node:sqlite').DatabaseSync;
@@ -15,11 +17,18 @@ export class Database {
   exec(sql:string){this.native.exec(sql);}
   query(sql:string):Statement{
     const s=this.bun?this.native.query(sql):this.native.prepare(sql);
+    if(this.bun)this.statements.add(s);
     return {get:(...v)=>s.get(...v),all:(...v)=>s.all(...v),run:(...v)=>s.run(...v)};
   }
   transaction<T>(fn:()=>T):()=>T {
-    if(this.bun)return this.native.transaction(fn);
     return ()=>{this.native.exec('BEGIN IMMEDIATE');try{const value=fn();this.native.exec('COMMIT');return value;}catch(e){this.native.exec('ROLLBACK');throw e;}};
   }
-  close(){this.native.close();}
+  close(){
+    if(this.closed)return;
+    // Bun's deferred close can retain SQLite statements/file mappings. POSIX
+    // tolerates deleting open files; Windows does not. Finalize before closing.
+    if(this.bun){for(const s of this.statements)s.finalize();this.statements.clear();this.native.close(true);}
+    else this.native.close();
+    this.closed=true;
+  }
 }

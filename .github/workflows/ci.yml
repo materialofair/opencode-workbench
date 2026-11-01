@@ -24,7 +24,7 @@ jobs:
       - run: bun run build
       - run: bun run typecheck
       - name: Core and native runtime tests
-        run: bun test tests/engine.test.ts tests/feishu.test.ts tests/install.test.ts tests/node-runtime.test.ts tests/platform.test.ts tests/schedule.test.ts tests/security.test.ts
+        run: bun test tests/engine.test.ts tests/feishu.test.ts tests/install.test.ts tests/node-runtime.test.ts tests/platform.test.ts tests/schedule.test.ts tests/security.test.ts tests/sqlite.test.ts
       - run: bun run test:integration
       - run: bunx playwright install --with-deps chromium
       - run: bun test tests/ui.test.ts

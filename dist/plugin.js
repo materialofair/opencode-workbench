@@ -10,6 +10,8 @@ var require2 = createRequire(import.meta.url);
 class Database {
   native;
   bun;
+  statements = new Set;
+  closed = false;
   constructor(path, _options) {
     this.bun = typeof globalThis.Bun !== "undefined";
     const Runtime = this.bun ? require2("bun:sqlite").Database : require2("node:sqlite").DatabaseSync;
@@ -20,11 +22,11 @@ class Database {
   }
   query(sql) {
     const s = this.bun ? this.native.query(sql) : this.native.prepare(sql);
+    if (this.bun)
+      this.statements.add(s);
     return { get: (...v) => s.get(...v), all: (...v) => s.all(...v), run: (...v) => s.run(...v) };
   }
   transaction(fn) {
-    if (this.bun)
-      return this.native.transaction(fn);
     return () => {
       this.native.exec("BEGIN IMMEDIATE");
       try {
@@ -38,7 +40,16 @@ class Database {
     };
   }
   close() {
-    this.native.close();
+    if (this.closed)
+      return;
+    if (this.bun) {
+      for (const s of this.statements)
+        s.finalize();
+      this.statements.clear();
+      this.native.close(true);
+    } else
+      this.native.close();
+    this.closed = true;
   }
 }
 

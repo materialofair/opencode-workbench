@@ -9,5 +9,8 @@ const plugin=await Bun.build({entrypoints:['src/plugin.ts'],outdir:'dist',target
 if(!plugin.success){console.error(plugin.logs);process.exit(1);}
 console.log('Built Node-compatible plugin entry for Desktop and Bun CLI.');
 
+const uiTest=await Bun.build({entrypoints:['tests/ui-runner.ts'],outdir:'.data',target:'node',packages:'external'});
+if(!uiTest.success){console.error(uiTest.logs);process.exit(1);}
+
 const feishu=await Bun.build({entrypoints:['adapters/feishu/plugin.ts'],outdir:'adapters/feishu',target:'node',packages:'external'});
 if(!feishu.success){console.error(feishu.logs);process.exit(1);}

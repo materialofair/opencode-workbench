@@ -38,7 +38,7 @@ test('misfires skip or coalesce once, never replay every missed interval',async(
 test('durable state restart reconciles active session without submitting again',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'workbench-'));const path=join(dir,'tasks.sqlite');
   const a=fixture(path);const t=a.store.save(task,undefined,undefined,a.now());a.engine.runNow(t.id,'first');await flush(a.engine);await a.engine.stop();a.store.close();
-  const b=fixture(path);b.setSnapshot({status:'succeeded'});await b.engine.tick();expect(b.counts().submitted).toBe(0);expect(b.store.runs()[0].status).toBe('succeeded');await b.engine.stop();b.store.close();rmSync(dir,{recursive:true});
+  const b=fixture(path);b.setSnapshot({status:'succeeded'});await b.engine.tick();expect(b.counts().submitted).toBe(0);expect(b.store.runs()[0].status).toBe('succeeded');await b.engine.stop();b.store.close();rmSync(dir,{recursive:true,maxRetries:5,retryDelay:50});
 });
 test('lost submission ack is uncertain and never retried',async()=>{
   const f=fixture();f.host.submit=async()=>{throw new Error('network lost after send');};const t=f.store.save(task,undefined,undefined,f.now());f.engine.runNow(t.id,'first');await flush(f.engine);
@@ -49,7 +49,7 @@ test('global concurrency and two process database lease',async()=>{
   for(let i=0;i<3;i++) {const t=a.store.save({...task,name:`task-${i}`},undefined,undefined,a.now());a.engine.runNow(t.id,`manual-${i}`);}
   await flush(a.engine);expect(a.counts().submitted).toBe(2);expect(a.store.runs().filter(r=>r.status==='skipped').length).toBe(1);
   await b.engine.tick();expect(b.engine.leader).toBe(false);expect(()=>b.engine.runNow(a.store.tasks()[0].id,'foreign')).toThrow();
-  await a.engine.stop();a.store.close();await b.engine.tick();expect(b.engine.leader).toBe(true);await b.engine.stop();b.store.close();rmSync(dir,{recursive:true});
+  await a.engine.stop();a.store.close();await b.engine.tick();expect(b.engine.leader).toBe(true);await b.engine.stop();b.store.close();rmSync(dir,{recursive:true,maxRetries:5,retryDelay:50});
 });
 test('stale edits rejected, pause resumes without old backfill, run snapshot survives delete',()=>{
   const f=fixture();const t=f.store.save(task,undefined,undefined,f.now());const paused=f.store.save({...t,enabled:false},t.id,t.revision,f.now());expect(paused.next).toBeNull();expect(()=>f.store.save(t,t.id,t.revision,f.now())).toThrow();

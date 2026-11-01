@@ -71,4 +71,6 @@ bun run scan:release
 
 添加 workflow 不是 CI 已通过的证据；实际 runner 结果以 [GitHub Actions](https://github.com/materialofair/opencode-workbench/actions) 的具体运行链接为准。CI 的无头页面和后端测试也不能代替 Windows Desktop UI、默认浏览器实际启动、真实飞书收发或睡眠/关机验收。
 
+首轮原生 Windows runner 已发现实际差异：Bun 的默认延迟关闭仍占用 SQLite 文件，改为显式 finalize 和严格关闭，并新增关闭后立即重命名/重开的回归；浏览器行为验收改为 Node Playwright，以匹配 Desktop 并避免旧 Bun Windows 子进程管道的启动停滞。测试清理对 Windows 短时文件占用做有限重试，不跳过功能断言。最终是否通过仍以修复后的具体 CI 结果为准。
+
 参考：[Node Windows 权限限制](https://nodejs.org/api/fs.html#fschmodpath-mode-callback)、[文件 URL](https://nodejs.org/api/url.html#urlpathtofileurlpath-options)、[Microsoft icacls](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls)、[Bun 安装平台](https://bun.sh/docs/installation)。

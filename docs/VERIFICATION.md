@@ -4,7 +4,7 @@
 
 ## 自动化与浏览器
 
-运行 `bun run build`、`bun run typecheck`、`bun test tests`。本机 macOS 当前共 31 项：30 通过、1 项仅限原生 Windows 的实际 ACL 检查跳过，0 失败。新增 Windows 分支测试不等于 Windows 真机通过；CI 结果另见 [Windows 说明](WINDOWS.md)。
+运行 `bun run build`、`bun run typecheck`、`bun test tests`。本机 macOS 当前共 32 项：31 通过、1 项仅限原生 Windows 的实际 ACL 检查跳过，0 失败。新增 Windows 分支测试不等于 Windows 真机通过；CI 结果另见 [Windows 说明](WINDOWS.md)。
 
 | 范围 | 证据 |
 | --- | --- |
@@ -19,6 +19,7 @@
 | 飞书模拟 | 固定哈希的适配复现、仅 loopback、模拟认证、缺配置不连接、会话复用/重启查找、/new、Unicode/代码分页 |
 | 安装器 | 默认 dry-run、中文/空格路径安装卸载、拒绝覆盖别的文件、拒绝符号链接/junction，先全量预检 |
 | Windows 分支 | drive/slash/case/长路径身份、LocalAppData/XDG、浏览器参数、ACL fail-closed、SDK 目录编码；原生 ACL 在 macOS 明确跳过 |
+| Windows 实测修复 | Bun SQLite 显式 finalize/严格关闭，验证关闭后立即重命名再打开；Playwright UI 在 Desktop 同类 Node 运行时执行 |
 
 截图保存在忽略提交的 `artifacts/task-manager-desktop.png`、`task-manager-approval.png`、`task-manager-mobile.png`，展示的均为模拟项目和任务。无真实对话或凭据。Skill 通过本机 skill-creator 的 frontmatter/name 校验；这是 OpenCode 仓库配套 Skill，不是 ChatGPT 个人技能安装。
 
