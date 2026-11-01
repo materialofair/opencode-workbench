@@ -1,0 +1,43 @@
+{
+  "desktopVersion": "1.19.5",
+  "target": "Default Project",
+  "priorIdleCheckPassed": true,
+  "quietThresholdSeconds": 60,
+  "priorQuietThresholdSatisfied": true,
+  "installation": {
+    "projectLocalFilesAdded": 2,
+    "preexistingFilesOverwritten": 0,
+    "installedAsPlanned": true,
+    "rollbackManifestKeptPrivate": true,
+    "existingConfigurationAndFeishuFilesUnchanged": true
+  },
+  "instanceReload": {
+    "directoryScoped": true,
+    "wholeDesktopRestarted": false,
+    "taskManagerRegistered": true,
+    "feishuToolsRegistered": true
+  },
+  "desktopSkillToolBrowserVerified": true,
+  "sample": {
+    "scheduledUTC": "2026-11-01T10:53:56.693Z",
+    "createdUTC": "2026-11-01T10:53:57.325Z",
+    "status": "succeeded",
+    "replyObservedInDesktop": "DEFAULT_PROJECT_SCHEDULER_OK",
+    "runCount": 1,
+    "allTasksDisabled": true,
+    "model": {
+      "providerID": "openai",
+      "modelID": "gpt-6.1-sol"
+    }
+  },
+  "feishuHealth": {
+    "observedAfterDefaultProjectReload": true,
+    "authenticatedBotIdentityReadSucceeded": true,
+    "websocketInfoObserved": false,
+    "websocketErrorCount": 0,
+    "feishuPluginErrorCount": 0,
+    "messageSendTestPerformed": false
+  },
+  "realMessageSendTestPerformed": false,
+  "privatePathsSessionIDsAndConfigurationContentsOmitted": true
+}

@@ -1,6 +1,6 @@
 # 本地验证记录
 
-验证日期：2026-11-01。环境：macOS arm64，Bun 1.2.18，TypeScript 5.9.3，React 19.2.0，OpenCode plugin/SDK/隔离后端 1.19.5。本轮只在隔离项目与测试配置中执行，不修改正在使用的全局 OpenCode/飞书/模型配置。
+验证日期：2026-11-01。环境：macOS arm64，Bun 1.2.18，TypeScript 5.9.3，React 19.2.0，OpenCode plugin/SDK/隔离后端 1.19.5。早期在隔离项目与测试配置中执行，后续在 Default Project 做了最小增量安装；未修改全局 OpenCode/飞书/模型配置，详见下方部署记录。
 
 ## 自动化与浏览器
 
@@ -45,6 +45,10 @@
 ## 现用 Desktop 验收
 
 补充的现用 Desktop 验收已经完成，见 [完整事实与边界](DESKTOP_ACCEPTANCE.md)。它发现并修复了 Node sidecar 与 Bun CLI 的运行时差异；真实 Skill/专用工具/Comet 页面、单次触发、固定回复成功、页面中止、项目插件实例重建后去重均已验证。
+
+## Default Project 部署验收
+
+已完成日常 Default Project 的空闲检查、最小增量安装、按目录重建、Skill/工具/页面唤起及真实单次任务完成，见 [Default Project 部署记录](DEFAULT_PROJECT_DEPLOYMENT.md)。既有飞书插件认证读取与初始化通过；未发送真实消息。
 
 ## 仍需真实环境验收的项目
 
