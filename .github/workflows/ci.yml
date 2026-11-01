@@ -1,0 +1,30 @@
+name: Cross-platform verification
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.18'
+      - run: npm ci --ignore-scripts
+      - run: bun run build
+      - run: bun run typecheck
+      - run: bunx playwright install --with-deps chromium
+      - run: bun test tests
+      - run: bun run test:integration
+      - run: bun run scan
+      - run: bun run scan:release

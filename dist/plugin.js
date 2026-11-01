@@ -1,9 +1,7 @@
 // src/plugin.ts
 import { tool } from "@opencode-ai/plugin";
-import { realpathSync, mkdirSync as mkdirSync2 } from "node:fs";
-import { homedir } from "node:os";
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
-import { createHash } from "node:crypto";
 
 // src/sqlite.ts
 import { createRequire } from "node:module";
@@ -145,7 +143,7 @@ class Store {
       mkdirSync(dirname(path), { recursive: true, mode: 448 });
     }
     this.db = new Database(path, { create: true });
-    if (path !== ":memory:")
+    if (path !== ":memory:" && process.platform !== "win32")
       chmodSync(path, 384);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
@@ -633,13 +631,80 @@ async function startServer(engine, directory, demo = false) {
   } };
 }
 
+// src/platform.ts
+import { win32, posix } from "node:path";
+import { mkdirSync as mkdirSync2, chmodSync as chmodSync2 } from "node:fs";
+import { homedir } from "node:os";
+import { createHash } from "node:crypto";
+import { execFileSync, spawn } from "node:child_process";
+function directoryKey(directory, platform = process.platform) {
+  if (platform !== "win32")
+    return directory;
+  const normal = win32.normalize(directory).replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/, "");
+  return normal.toLowerCase();
+}
+function projectID(directory, platform = process.platform) {
+  return createHash("sha256").update(directoryKey(directory, platform)).digest("hex").slice(0, 24);
+}
+function stateDirectory(directory, env = process.env, home = homedir(), platform = process.platform) {
+  const path = platform === "win32" ? win32 : posix;
+  const base = env.XDG_STATE_HOME || (platform === "win32" ? env.LOCALAPPDATA || path.join(home, "AppData", "Local") : path.join(home, ".local", "state"));
+  return path.join(base, "opencode-workbench", projectID(directory, platform));
+}
+var run = (file, args) => execFileSync(file, args, { encoding: "utf8", windowsHide: true, timeout: 1e4, stdio: ["ignore", "pipe", "pipe"] });
+function systemExecutable(name, env) {
+  if (!env.SystemRoot || !win32.isAbsolute(env.SystemRoot))
+    throw new Error("Windows SystemRoot is unavailable");
+  return win32.join(env.SystemRoot, "System32", name);
+}
+function protectStateDirectory(directory, platform = process.platform, env = process.env, execute = run) {
+  mkdirSync2(directory, { recursive: true, mode: 448 });
+  if (platform !== "win32") {
+    chmodSync2(directory, 448);
+    return;
+  }
+  try {
+    const identity = execute(systemExecutable("whoami.exe", env), ["/user", "/fo", "csv", "/nh"]);
+    const sid = identity.match(/\bS-\d-\d+(?:-\d+)+\b/)?.[0];
+    if (!sid)
+      throw new Error("Windows user SID unavailable");
+    const icacls = systemExecutable("icacls.exe", env);
+    execute(icacls, [directory, "/reset", "/q"]);
+    execute(icacls, [directory, "/inheritance:r", "/grant:r", `*${sid}:(OI)(CI)F`, "*S-1-5-18:(OI)(CI)F", "/q"]);
+  } catch {
+    throw new Error("Cannot protect task state with Windows ACL; use a private local NTFS directory. No scheduler was started.");
+  }
+}
+function browserCommand(url, platform = process.platform, env = process.env) {
+  const u = new URL(url);
+  if (u.protocol !== "http:" || u.hostname !== "127.0.0.1" || !u.port || u.pathname !== "/" || !/^#[A-Za-z0-9_-]{16,}$/.test(u.hash))
+    throw new Error("Invalid local task manager URL");
+  return platform === "darwin" ? { file: "/usr/bin/open", args: [url] } : platform === "win32" ? { file: systemExecutable("rundll32.exe", env), args: [systemExecutable("url.dll", env) + ",FileProtocolHandler", url] } : { file: "xdg-open", args: [url] };
+}
+async function openBrowser(url) {
+  const { file, args } = browserCommand(url);
+  await new Promise((resolve, reject) => {
+    const child = spawn(file, args, { stdio: "ignore", shell: false, windowsHide: true });
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error("本机浏览器启动超时，请检查默认浏览器后再次调用"));
+    }, 1e4);
+    child.once("error", () => {
+      clearTimeout(timer);
+      reject(new Error("本机浏览器启动失败"));
+    });
+    child.once("exit", (code) => {
+      clearTimeout(timer);
+      code === 0 ? resolve() : reject(new Error("无法打开默认浏览器，请检查本机浏览器后再次调用"));
+    });
+  });
+}
+
 // src/plugin.ts
-import { spawn } from "node:child_process";
 var TaskManager = async (ctx) => {
   const directory = realpathSync(ctx.directory);
-  const id = createHash("sha256").update(directory).digest("hex").slice(0, 24);
-  const root = join(process.env.XDG_STATE_HOME || join(homedir(), ".local", "state"), "opencode-workbench", id);
-  mkdirSync2(root, { recursive: true, mode: 448 });
+  const root = stateDirectory(directory);
+  protectStateDirectory(root);
   const store = new Store(join(root, "tasks.sqlite"));
   const engine = new Engine(store, injectedHost({ ...ctx, directory }));
   const page = await startServer(engine, directory);
@@ -657,7 +722,8 @@ var TaskManager = async (ctx) => {
   return {
     dispose,
     event: async ({ event }) => {
-      if (event.type === "server.instance.disposed" && event.properties?.directory === directory) {
+      const eventDirectory = event.properties?.directory;
+      if (event.type === "server.instance.disposed" && typeof eventDirectory === "string" && directoryKey(eventDirectory) === directoryKey(directory)) {
         await dispose();
         return;
       }
@@ -675,14 +741,7 @@ var TaskManager = async (ctx) => {
           throw new Error("任务管理已停止，请重新打开项目");
         if (store.active().some((r) => r.sessionID === context.sessionID))
           throw new Error("定时任务不能递归打开管理器");
-        const command = process.platform === "darwin" ? ["open", page.url] : process.platform === "win32" ? ["rundll32", "url.dll,FileProtocolHandler", page.url] : ["xdg-open", page.url];
-        const code = await new Promise((resolve, reject) => {
-          const proc = spawn(command[0], command.slice(1), { stdio: "ignore" });
-          proc.once("error", () => reject(new Error("本机浏览器启动失败")));
-          proc.once("exit", (code2) => resolve(code2 ?? 1));
-        });
-        if (code !== 0)
-          throw new Error("无法打开默认浏览器，请检查本机浏览器后再次调用");
+        await openBrowser(page.url);
         return "已打开当前项目的定时任务管理页面。调度仅在 OpenCode 后端运行时有效；审批请在 OpenCode 会话处理。";
       }
     }) }

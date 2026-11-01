@@ -30,15 +30,15 @@ test('CRUD and idempotent API execution with real SQLite and HTTP',async()=>{
     expect((await fetch(f.url+'/api/tasks/'+t.id,{method:'DELETE',headers})).status).toBe(200);expect(f.store.tasks().length).toBe(0);
   }finally{f.page.stop();await f.engine.stop();f.store.close();}
 });
-test('injected SDK preserves backend authentication/directory and installs ask plus deny rules',async()=>{
+test.each(['/fixture-project','C:\\Work Space\\项目 #1'])('injected SDK preserves backend authentication/directory %s and installs ask plus deny rules',async(directory)=>{
   const requests:Request[]=[];
   const client=createOpencodeClient({baseUrl:'http://127.0.0.1:12345',headers:{Authorization:'Bearer simulation-only'},fetch:async(req)=>{
     requests.push(req.clone());const p=new URL(req.url).pathname;
     const value=p==='/config'?{permission:{bash:{'*':'allow','rm *':'deny'},edit:'deny'}}:p==='/agent'?[{name:'build',permission:[]}]:p==='/session'?{id:'session-test'}:undefined;
     return value?Response.json(value):new Response(null,{status:204});
   }});
-  const host=injectedHost({client,directory:'/fixture-project'});const model={providerID:'fixture-provider',modelID:'fixture-model'};const sid=await host.create('Fixture',model);await host.submit(sid,'Read',model);
-  expect(requests.length).toBe(4);for(const req of requests){expect(req.headers.get('authorization')).toBe('Bearer simulation-only');expect(new URL(req.url).searchParams.get('directory')).toBe('/fixture-project');}
+  const host=injectedHost({client,directory});const model={providerID:'fixture-provider',modelID:'fixture-model'};const sid=await host.create('Fixture',model);await host.submit(sid,'Read',model);
+  expect(requests.length).toBe(4);for(const req of requests){expect(req.headers.get('authorization')).toBe('Bearer simulation-only');expect(new URL(req.url).searchParams.get('directory')).toBe(directory);}
   const create=await requests[2].json();expect(create.model).toEqual({id:'fixture-model',providerID:'fixture-provider'});expect((await requests[3].json()).model).toEqual(model);expect(create.permission).toEqual(reviewRules({bash:{'*':'allow','rm *':'deny'},edit:'deny'}));
   expect(create.permission.some((x:any)=>x.action==='allow')).toBe(false);
 });

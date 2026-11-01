@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-01",
+  "localEnvironment": "macOS arm64",
+  "bun": "1.2.18",
+  "nativeWindowsEnvironmentAvailable": false,
+  "automatedTests": {
+    "total": 31,
+    "passed": 30,
+    "skipped": 1,
+    "failed": 0,
+    "skipReason": "Actual Windows DACL check is Windows-only"
+  },
+  "windowsBranchesCovered": [
+    "drive/slash/case/long-path identity",
+    "LocalAppData and XDG state location",
+    "fixed system browser argument vector",
+    "ACL fail-closed simulation",
+    "Unicode/space project installation and removal",
+    "symbolic link / junction installation refusal",
+    "Windows directory SDK query encoding",
+    "compiled Feishu loader with a local stub"
+  ],
+  "isolatedOpenCode": {
+    "version": "1.19.5",
+    "isolated": true,
+    "usesRealCredentials": false,
+    "feishuMessagesSent": 0,
+    "pluginLoaded": true,
+    "completionStatus": "succeeded",
+    "approvalStatus": "waiting_approval",
+    "cancelStatus": "interrupted",
+    "restartRecoveredStatus": "succeeded",
+    "modelRequests": 2,
+    "success": true
+  },
+  "ciRunnerResultsIncluded": false,
+  "windowsDesktopOrRealFeishuAcceptanceClaimed": false,
+  "noPrivatePathsOrRealSessionIDsIncluded": true
+}

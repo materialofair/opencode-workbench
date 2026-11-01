@@ -1,23 +1,26 @@
-# OpenCode Workbench Local
+# OpenCode Workbench
 
 OpenCode 的本机定时任务管理插件，以及可选的飞书 Desktop 适配。React + TypeScript + Node/Bun + SQLite，不修改打包的 OpenCode Desktop，也不另装常驻服务。
 
 对 OpenCode 说「打开定时任务管理」，Skill 调用 `open_task_manager`，默认浏览器打开当前项目的本机页面。页面支持创建、编辑、暂停/启用、删除、立即执行、查看历史及中止运行。
 
-**当前为本地开发预览版 0.1.0。** 已验证的内容和未完成的真实环境验收见 [验证记录](docs/VERIFICATION.md)。尚未发布 npm 包或公开仓库。
+**当前为开发预览版 0.1.0，采用 MIT 许可，不提供 npm 发布包。** 源码目标仓库为 [materialofair/opencode-workbench](https://github.com/materialofair/opencode-workbench)。已验证的内容和未完成的真实环境验收见 [验证记录](docs/VERIFICATION.md)。
 
 ## 运行条件
 
 - OpenCode **1.19.5**：兼容 Desktop 的 Node sidecar 与 Bun CLI；SDK 与插件类型均固定到 1.19.5。
 - 开发构建使用 Bun 1.2.18 或兼容版本；Desktop 运行使用其已有的 Node SQLite，不要求额外 Bun 常驻进程。Node 运行时需支持 node:sqlite（Node 22.13+）。
 - 本机默认浏览器。每个项目独立页面、数据库与运行会话。
+- Windows 10/11 x64 原生环境使用本地 NTFS 状态目录，支持中文和空格路径。Windows 安装、ACL、测试层级及限制见 [Windows 使用说明](docs/WINDOWS.md)；没有用 macOS 上的 Windows 分支测试冒充原生 Windows 验收。
 - OpenCode 后端必须在运行。关闭窗口是否退出取决于 Desktop 行为；真正退出后不调度。休眠、关机时不保证准点执行，也不会唤醒设备。
 
 ## 安装和使用
 
-先在本项目目录安装与构建：
+先获取源码并在项目目录安装与构建；Windows PowerShell 的完整命令见上方 Windows 说明：
 
 ```sh
+git clone https://github.com/materialofair/opencode-workbench.git
+cd opencode-workbench
 npm ci --ignore-scripts
 bun run build
 bun run typecheck
@@ -78,17 +81,17 @@ bun scripts/install.ts --project /absolute/path/to/test-project --remove --apply
 
 仅删除安装器内容完全匹配的两个文件。全局用 `--global --remove`；不会删除其他插件或任何数据库，也不会还原/修改飞书配置。退出后插件停止；卸载不会自动中止已交给宿主执行的会话，请先在页面中止需要停止的运行。
 
-数据默认保存在 `${XDG_STATE_HOME:-~/.local/state}/opencode-workbench/<项目真实路径的哈希>/tasks.sqlite`。目录权限 0700，数据库 0600；SQLite 使用 WAL。退出后一起备份整个项目状态目录，或用 SQLite 在线 backup，勿在运行中单独复制 db 而漏掉 WAL。数据库包含你输入的指令和运行元数据，**不要提交**。删除任务保留历史快照；页面只显示最近 1000 条，当前版本不会自动清理全部历史。
+macOS/Linux 数据默认保存在 `${XDG_STATE_HOME:-~/.local/state}/opencode-workbench/<项目真实路径的哈希>/tasks.sqlite`；Windows 默认使用 `%LOCALAPPDATA%/opencode-workbench/<项目路径哈希>/tasks.sqlite`，显式 `XDG_STATE_HOME` 优先。POSIX 目录权限 0700、数据库 0600；Windows 对插件自己的项目状态目录设置当前用户及 SYSTEM 的 ACL，失败则不启动调度，不把 chmod 当成 Windows 访问控制。SQLite 使用 WAL，只支持本地文件系统。退出后一起备份整个项目状态目录，或用 SQLite 在线 backup，勿在运行中单独复制 db 而漏掉 WAL。数据库包含你输入的指令和运行元数据，**不要提交**。删除任务保留历史快照；页面只显示最近 1000 条，当前版本不会自动清理全部历史。
 
 ## 开源准备
 
-原创部分建议采用 MIT，本地已附 MIT 许可；发布前由维护者确认署名及许可选择。第三方继续保留各自许可证；依赖清单见 [第三方说明](docs/THIRD_PARTY.md)。
+原创部分采用 MIT，版权署名见根目录 LICENSE。第三方继续保留各自许可证；依赖清单见 [第三方说明](docs/THIRD_PARTY.md)。
 
 ```sh
 bun run scan
 bun run scan:release
 ```
 
-扫描只报告文件/对象、行号和规则名，不输出匹配密钥。`scan:release` 检查全部本地 Git 对象（含不可达历史）、提交/标签元数据、历史路径与当前 tracked/未忽略文件，完整清单写入不提交的 `artifacts/release-audit.json`。扫描通过并不等于完整安全审计；发布前仍需人工审查 staged diff、私人信息与目标仓库。公开仓库创建、推送和 npm 发布须先确认具体目的地，当前没有执行这些动作。完整公开范围和许可核查见 [发布准备](docs/RELEASE_PREPARATION.md)。
+扫描只报告文件/对象、行号和规则名，不输出匹配密钥。`scan:release` 检查全部本地 Git 对象（含不可达历史）、提交/标签元数据、历史路径与当前 tracked/未忽略文件，完整清单写入不提交的 `artifacts/release-audit.json`。扫描通过并不等于完整安全审计；发布前仍需人工审查 staged diff、私人信息与目标仓库。完整公开范围和许可核查见 [发布准备](docs/RELEASE_PREPARATION.md)。本项目的 GitHub CI 使用隔离 fixture，不读取个人配置、不调用真实模型或飞书、不发布 npm。
 
 [架构](docs/ARCHITECTURE.md) · [安全边界](docs/SECURITY.md) · [验证记录](docs/VERIFICATION.md)

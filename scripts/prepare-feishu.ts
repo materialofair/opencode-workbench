@@ -29,6 +29,9 @@ export function prepare() {
   // New project safeguards are separate from the preserved historical desktop diff.
   let result=adapted.replace('const configPath = join(homedir(), ".config", "opencode", "plugins", "feishu.json");','const configPath = process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG || join(homedir(), ".config", "opencode", "plugins", "feishu.json");');
   result=result.replace('  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;','  if (process.env.OPENCODE_WORKBENCH_FEISHU_TELEMETRY !== "1") return;\n  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;');
+  // Keep the upstream/local historical hash chain intact; apply this new
+  // Windows-only owner guard after verifying the preserved adaptation.
+  result=result.replace('realpathSync(resolvedConfig.directory) !== realpathSync(ctx.directory)', '(process.platform === "win32" ? realpathSync(resolvedConfig.directory).toLowerCase() !== realpathSync(ctx.directory).toLowerCase() : realpathSync(resolvedConfig.directory) !== realpathSync(ctx.directory))');
   const target=join(root,'.data','feishu');mkdirSync(join(target,'dist'),{recursive:true,mode:0o700});
   writeFileSync(join(target,'dist','index.desktop.js'),result,{mode:0o600});
   copyFileSync(join(root,'adapters/feishu/compact-markdown.mjs'),join(target,'dist','compact-markdown.mjs'));

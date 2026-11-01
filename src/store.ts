@@ -12,7 +12,9 @@ export class Store {
   constructor(path: string) {
     if (path !== ':memory:') { mkdirSync(dirname(path), { recursive: true, mode: 0o700 }); }
     this.db = new Database(path, { create: true });
-    if (path !== ':memory:') chmodSync(path, 0o600);
+    // Windows privacy is enforced on the plugin state directory using ACLs;
+    // chmod on Windows only changes the read-only attribute, not user access.
+    if (path !== ':memory:' && process.platform!=='win32') chmodSync(path, 0o600);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY, data TEXT NOT NULL);

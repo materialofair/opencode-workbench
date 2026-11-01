@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {readFileSync} from 'node:fs';import vm from 'node:vm';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import vm from 'node:vm';
 import {prepare} from '../scripts/prepare-feishu';
 import {FeishuDesktop} from '../adapters/feishu/plugin';
 // Local helper reused with attribution from the audited Desktop adaptation.
@@ -13,10 +13,11 @@ test('pinned Feishu adaptation reproducibly builds; dynamic backend/auth stays i
   expect(result.baseUrl).toBe('http://127.0.0.1:43210/');expect(result.headers.Authorization).toBe('Basic '+Buffer.from('fixture:fixture-only').toString('base64'));
   expect(()=>c.buildDesktopClientConfig({serverUrl:new URL('https://remote.invalid')},'/fixture',{})).toThrow();
   expect(code).not.toContain('"permission.ask": async');expect(code).toContain('OPENCODE_WORKBENCH_FEISHU_TELEMETRY !== "1"');
+  expect(code).toContain('process.platform === "win32" ? realpathSync(resolvedConfig.directory).toLowerCase()');
 });
 test('optional Feishu entry does not start gateway when test configuration is absent',async()=>{
-  const old=process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG;process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG='/tmp/opencode-workbench-nonexistent-fixture.json';
-  try{expect(await FeishuDesktop({directory:'/fixture'} as any)).toEqual({});}finally{if(old===undefined)delete process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG;else process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG=old;}
+  const root=mkdtempSync(join(tmpdir(),'workbench-feishu-'));const old=process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG;process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG=join(root,'absent.json');
+  try{expect(await FeishuDesktop({directory:root} as any)).toEqual({});}finally{if(old===undefined)delete process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG;else process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG=old;rmSync(root,{recursive:true});}
 });
 test('Feishu session routing reuses own chat session across restart; new command rotates it',async()=>{
   const code=readFileSync('.data/feishu/dist/index.desktop.js','utf8');

@@ -1,2 +1,3 @@
+* text=auto eol=lf
 # Unified diff context lines contain a required leading space, even when blank.
 adapters/feishu/desktop.patch -whitespace

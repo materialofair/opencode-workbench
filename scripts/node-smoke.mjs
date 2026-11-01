@@ -1,5 +1,5 @@
-import assert from 'node:assert/strict';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import childProcess from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';import {EventEmitter} from 'node:events';
-const directory=mkdtempSync(join(tmpdir(),'workbench-node-smoke-'));process.env.XDG_STATE_HOME=join(directory,'state');
+import assert from 'node:assert/strict';import {mkdtempSync,rmSync,mkdirSync,writeFileSync,copyFileSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import childProcess from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';import {EventEmitter} from 'node:events';
+const directory=mkdtempSync(join(tmpdir(),'workbench node 中文-'));process.env.XDG_STATE_HOME=join(directory,'state');
 const original=childProcess.spawn;let pageURL='';let submissions=0;
 childProcess.spawn=(_cmd,args)=>{pageURL=args.at(-1);const fake=new EventEmitter();queueMicrotask(()=>fake.emit('exit',0));return fake;};syncBuiltinESMExports();
 let hooks;
@@ -7,6 +7,13 @@ try{
   const {TaskManager}=await import('../dist/plugin.js');
   process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG=join(directory,'no-feishu-config.json');
   const {FeishuDesktop}=await import('../adapters/feishu/plugin.js');assert.deepEqual(await FeishuDesktop({directory}),{});
+  // Exercise the exact compiled optional loader with a local stub, never a bot.
+  // A Windows drive path passed directly to import() would fail this test.
+  const sandbox=join(directory,'feishu fixture');const entry=join(sandbox,'adapters','feishu','plugin.js');const upstream=join(sandbox,'.data','feishu','dist');
+  mkdirSync(join(sandbox,'adapters','feishu'),{recursive:true});mkdirSync(upstream,{recursive:true});writeFileSync(join(sandbox,'package.json'),JSON.stringify({type:'module'}));copyFileSync(new URL('../adapters/feishu/plugin.js',import.meta.url),entry);
+  writeFileSync(join(upstream,'index.desktop.js'),'export const FeishuPlugin = async () => ({fixtureOnly: true});\n');
+  const config=join(sandbox,'fixture.json');writeFileSync(config,JSON.stringify({directory}));process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG=config;
+  const {FeishuDesktop:FixtureFeishu}=await import(pathToFileURL(entry).href);assert.deepEqual(await FixtureFeishu({directory}),{fixtureOnly:true});
   const client={config:{get:async()=>({data:{permission:{edit:'deny'}}})},app:{agents:async()=>({data:[{name:'build',permission:[]}]})},session:{create:async()=>({data:{id:'node-fixture'}}),promptAsync:async()=>{submissions++;return{};},status:async()=>({data:{}}),messages:async()=>({data:[{info:{role:'assistant',sessionID:'node-fixture',time:{completed:Date.now()},finish:'stop'}}]}),abort:async()=>({})}};
   hooks=await TaskManager({client,directory,worktree:directory,project:{}});
   await hooks.tool.open_task_manager.execute({},{sessionID:'launch-fixture'});assert.ok(pageURL.startsWith('http://127.0.0.1:'));

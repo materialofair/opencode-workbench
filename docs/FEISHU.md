@@ -5,9 +5,9 @@
 - 原始对话、CardKit、消息队列、资源处理、会话路由、权限/问答卡片功能：NeverMore93 的 `opencode-feishu@1.10.10`，MIT。
 - 本机既有适配：选定 Desktop 项目拥有单一连接；使用宿主动态后端地址/认证；销毁时停止 gateway；删除上游针对 read 的自动批准；可选模型参数；收敛 SDK 日志；精简卡片、Markdown 清理与 UTF-8/JSON 字节预算分页。
 - 上述适配已保存为 `adapters/feishu/desktop.patch` 与 `compact-markdown.mjs`，保留来源。它们来自本机先前工作，不将上游整体或这些旧适配冒称此次原创。
-- 此次新增：可复现构建/哈希校验、可选入口、显式 owner directory、测试配置路径、遥测默认关闭、安装迁移说明与隔离测试。
+- 此次新增：可复现构建/哈希校验、可选入口、显式 owner directory、测试配置路径、遥测默认关闭、Windows 文件 URL/owner guard、安装迁移说明与隔离测试。
 
-原始许可证见 `third-party/opencode-feishu/LICENSE`。来源元数据包含公开 npm 包 bundle 和本地适配 bundle 的 SHA-256。构建先检查上游哈希，按上下文应用补丁，再检查旧适配哈希，最后施加本项目两个明确变更：配置路径 override 与遥测 opt-in。生成文件进入忽略提交的 `.data/feishu`，不修改 node_modules 或当前已安装适配。
+原始许可证见 `third-party/opencode-feishu/LICENSE`。来源元数据包含公开 npm 包 bundle 和本地适配 bundle 的 SHA-256。构建先检查上游哈希，按上下文应用补丁，再检查旧适配哈希，最后施加本项目三个明确变更：配置路径 override、遥测 opt-in 和 Windows owner 路径比较。生成文件进入忽略提交的 `.data/feishu`，不修改 node_modules 或当前已安装适配。Windows 完整范围见 [平台说明](WINDOWS.md)。
 
 ## 准备及单独启用
 

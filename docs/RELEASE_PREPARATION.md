@@ -1,6 +1,6 @@
 # 公开源码准备
 
-核查日期：2026-11-01。当前是本地开发预览，不是已经公开的仓库或 npm 包。建议仓库名 `opencode-workbench`，发布目的地和原创署名/许可由维护者最终确认；不要将建议名称当成已经创建的仓库。package.json 保持 `private: true`，防止误发 npm。
+核查日期：2026-11-01。开发预览版源码采用 MIT、署名 OpenCode Workbench contributors，公开目标为 [materialofair/opencode-workbench](https://github.com/materialofair/opencode-workbench)。package.json 保持 `private: true`，防止误发 npm。本说明记录公开范围和预检，不以计划代替远端发布或 CI 成功证据。
 
 ## 公开范围
 
@@ -40,8 +40,8 @@ git status --short
 
 README 的安装命令使用锁文件与 `npm ci --ignore-scripts`，构建依赖 Bun，插件实际运行兼容 Desktop Node sidecar 和 Bun CLI。安装器先 dry-run、再显式 `--apply`，只写自身两个文件；升级须在改动旧构建前用旧安装器卸载，保留旧源码用于回滚。
 
-已验证 OpenCode 1.19.5、macOS arm64、真实 Desktop Skill → 工具 → 页面 → 单次调度完成、按目录实例重建去重；24 项自动化和隔离真实后端测试另有记录。不能扩展为 Windows/Linux、任意 OpenCode 新版本或长期生产稳定性保证。
+已验证 OpenCode 1.19.5、macOS arm64、真实 Desktop Skill → 工具 → 页面 → 单次调度完成、按目录实例重建去重。新增 Windows 路径、浏览器、ACL、安装边界与动态加载验证；实际测试层级见 [Windows 说明](WINDOWS.md) 和 [验证记录](VERIFICATION.md)。CI 的实际运行结果不能推断为 Windows Desktop 真实界面、任意 OpenCode 新版本或长期生产稳定性保证。
 
 整个正在使用的 Desktop 进程退出重启、真实睡眠/关机、现用逐项审批按钮、真实飞书收发/附件/卡片回调仍未完成此次端到端验收。飞书只确认既有认证读取、初始化及工具注册，没有发送真实消息。公开描述须保留这些边界，详见 [验证记录](VERIFICATION.md) 和 [飞书说明](FEISHU.md)。
 
-发布前最后需要确认具体仓库、可见性及署名许可。当前未创建远端、未推送、未发 npm；仓库名查询的 404 仅表示当前连接无法访问该名称，不证明名称在所有权限上下文中可用。
+每次发布前重新核对目标仓库、可见性、最终 tree 与全历史扫描结果；不上传忽略文件或个人配置，不执行 npm 发布。创建/推送操作的实际结果应通过远端 default branch、提交 SHA、文件清单及 MIT 检测复核。

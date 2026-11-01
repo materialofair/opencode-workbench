@@ -4,7 +4,7 @@
 
 ## 自动化与浏览器
 
-运行 `bun run build`、`bun run typecheck`、`bun test tests`。当前共 24 项测试，0 失败：
+运行 `bun run build`、`bun run typecheck`、`bun test tests`。本机 macOS 当前共 31 项：30 通过、1 项仅限原生 Windows 的实际 ACL 检查跳过，0 失败。新增 Windows 分支测试不等于 Windows 真机通过；CI 结果另见 [Windows 说明](WINDOWS.md)。
 
 | 范围 | 证据 |
 | --- | --- |
@@ -17,7 +17,8 @@
 | Node 运行时 | 编译后的真实插件在 Node 中完成 SQLite CRUD、HTTP 鉴权、注入 client 的执行与成功终态 |
 | 宿主适配 | 注入 client 的动态地址、认证、directory 保留；ask 与 deny 规则 |
 | 飞书模拟 | 固定哈希的适配复现、仅 loopback、模拟认证、缺配置不连接、会话复用/重启查找、/new、Unicode/代码分页 |
-| 安装器 | 默认 dry-run、安装/卸载、拒绝覆盖别的文件且先全量预检 |
+| 安装器 | 默认 dry-run、中文/空格路径安装卸载、拒绝覆盖别的文件、拒绝符号链接/junction，先全量预检 |
+| Windows 分支 | drive/slash/case/长路径身份、LocalAppData/XDG、浏览器参数、ACL fail-closed、SDK 目录编码；原生 ACL 在 macOS 明确跳过 |
 
 截图保存在忽略提交的 `artifacts/task-manager-desktop.png`、`task-manager-approval.png`、`task-manager-mobile.png`，展示的均为模拟项目和任务。无真实对话或凭据。Skill 通过本机 skill-creator 的 frontmatter/name 校验；这是 OpenCode 仓库配套 Skill，不是 ChatGPT 个人技能安装。
 
@@ -38,7 +39,7 @@
 
 ## 敏感信息与来源
 
-`bun run scan` 对可公开源码、补丁、文档及构建产物扫描，结果无命中。排除项明确为 Git、node_modules、本机安装包装器 `.opencode`、`.data`、artifacts 和日志/运行数据；发布时它们也应保持排除。扫描为启发式，最终公开前仍需人工检查 Git 历史与 staged diff。未配置 remote、未创建公开仓库、未推送或发布 npm。
+`bun run scan` 对可公开源码、补丁、文档及构建产物扫描，结果无命中。排除项明确为 Git、node_modules、本机安装包装器 `.opencode`、`.data`、artifacts 和日志/运行数据；发布时它们也应保持排除。`bun run scan:release` 另检查完整 Git 对象库、历史路径及提交元数据。扫描为启发式，不能代替人工审查；公开范围见 [发布准备](RELEASE_PREPARATION.md)。不发布 npm。
 
 飞书来源为 NeverMore93/opencode-feishu 1.10.10，MIT，原始版权声明已保留；上游、本地适配和 helper 的哈希已记录。BrowserSkill 不复制或再分发。
 
@@ -56,7 +57,7 @@
 - 现用 Desktop 的逐项权限按钮批准/拒绝尚未额外执行；真实后端 permission.asked 和管理页等待由隔离集成脚本验证。
 - 真实模型供应商的长任务、断网/睡眠/关机后的端到端行为；自动化只模拟时钟和重启边界，不宣称能唤醒设备。
 - 真实飞书机器人长连接、卡片在线更新、权限按钮、附件和发送者授权检查。此次零真实飞书消息，既有连接未迁移。
-- Windows/Linux 默认浏览器打开、权限位及桌面安装；目前主要验证 macOS。
+- Windows/Linux Desktop 真实界面、默认浏览器实际唤起和飞书实际连接；本机没有 Windows 环境，跨平台分支测试与 CI 不能代替这些验收。
 - 宿主自动审批模式、第三方工具绕过权限或恶意本机进程不由本插件提供独立沙箱。依赖漏洞审计、外部渗透测试与大规模长期运行尚未进行。
 
 当前预览不支持任意 cron、远端管理、内置审批、自动飞书推送、凭据管理、历史自动归档、多机部署或设备唤醒。这些不是已实现功能。
