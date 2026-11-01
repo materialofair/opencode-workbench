@@ -644,7 +644,7 @@ async function startServer(engine, directory, demo = false) {
 
 // src/platform.ts
 import { win32, posix } from "node:path";
-import { mkdirSync as mkdirSync2, chmodSync as chmodSync2 } from "node:fs";
+import { mkdirSync as mkdirSync2, chmodSync as chmodSync2, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";

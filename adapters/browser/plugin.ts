@@ -2,7 +2,7 @@ import type {Plugin,ToolContext} from '@opencode-ai/plugin';
 import {tool} from '@opencode-ai/plugin';
 import {existsSync,readFileSync,realpathSync} from 'node:fs';
 import {join} from 'node:path';
-import {directoryKey,expandOwnerDirectory} from '../../src/platform';
+import {directoryKey,sameOwnerDirectory,expandOwnerDirectory} from '../../src/platform';
 import {BrowserBroker,BrowserFault,validateBrowserConfig,type BrowserConfig,type BrowserInput,type Command} from '../../src/browser/broker';
 
 function browserHooks(directory:string,config:BrowserConfig,command?:Command){
@@ -33,6 +33,6 @@ export const BrowserTools:Plugin=async ctx=>{
   const raw=JSON.parse(readFileSync(file,'utf8'));if(raw.enabled!==true)return {};
   for(const key of ['directory','bskPath','bskHome'])if(typeof raw[key]==='string')raw[key]=expandOwnerDirectory(raw[key]);
   const config=validateBrowserConfig(raw);
-  if(directoryKey(realpathSync(config.directory))!==directoryKey(directory))return {};
+  if(!sameOwnerDirectory(realpathSync(config.directory),directory))return {};
   return browserHooks(directory,config) as any;
 };

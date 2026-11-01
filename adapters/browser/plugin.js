@@ -5,12 +5,25 @@ import { join } from "node:path";
 
 // src/platform.ts
 import { win32, posix } from "node:path";
+import { mkdirSync, chmodSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 function directoryKey(directory, platform = process.platform) {
   if (platform !== "win32")
     return directory;
   const normal = win32.normalize(directory).replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/, "");
   return normal.toLowerCase();
+}
+function sameOwnerDirectory(left, right, platform = process.platform, identify = (path) => statSync(path, { bigint: true })) {
+  if (directoryKey(left, platform) === directoryKey(right, platform))
+    return true;
+  if (platform !== "win32")
+    return false;
+  try {
+    const a = identify(left), b = identify(right);
+    return a.isDirectory() && b.isDirectory() && a.dev !== 0n && a.ino !== 0n && a.dev === b.dev && a.ino === b.ino;
+  } catch {
+    return false;
+  }
 }
 function expandOwnerDirectory(value, env = process.env, home = homedir()) {
   return value.replace(/^~(?=[\\/]|$)/, () => home).replace(/\$\{(\w+)\}/g, (_, key) => env[key] ?? "");
@@ -311,7 +324,7 @@ var BrowserTools = async (ctx) => {
     if (typeof raw[key] === "string")
       raw[key] = expandOwnerDirectory(raw[key]);
   const config = validateBrowserConfig(raw);
-  if (directoryKey(realpathSync(config.directory)) !== directoryKey(directory))
+  if (!sameOwnerDirectory(realpathSync(config.directory), directory))
     return {};
   return browserHooks(directory, config);
 };

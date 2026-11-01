@@ -5,12 +5,20 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {Store} from '../src/store';
-import {browserCommand,directoryKey,projectID,stateDirectory,expandOwnerDirectory,protectStateDirectory} from '../src/platform';
+import {browserCommand,directoryKey,sameOwnerDirectory,projectID,stateDirectory,expandOwnerDirectory,protectStateDirectory} from '../src/platform';
 
 test('Windows project identity handles drive, slash, case and long path aliases without changing POSIX identities',()=>{
   const directory='C:\\Work Space\\项目';
   for(const alias of [directory,'c:/work space/项目','\\\\?\\C:\\Work Space\\项目'])expect(projectID(alias,'win32')).toBe(projectID(directory,'win32'));
   expect(directoryKey('\\\\?\\UNC\\server\\share\\Project','win32')).toBe('\\\\server\\share\\project');
+  const short='C:/PROJEC~1/fixture',long='C:/Project Directory/fixture';
+  const identity=(dev:bigint,ino:bigint)=>({dev,ino,isDirectory:()=>true});
+  expect(sameOwnerDirectory(short,long,'win32',()=>identity(123n,456n))).toBe(true);
+  expect(sameOwnerDirectory(short,long,'win32',path=>identity(123n,path===short?456n:789n))).toBe(false);
+  expect(sameOwnerDirectory(short,long,'win32',path=>identity(path===short?123n:321n,456n))).toBe(false);
+  expect(sameOwnerDirectory(short,long,'win32',()=>identity(0n,456n))).toBe(false);
+  expect(sameOwnerDirectory(short,long,'win32',()=>identity(123n,0n))).toBe(false);
+  expect(sameOwnerDirectory(short,long,'win32',()=>{throw new Error('No file identity');})).toBe(false);
   const posix='/fixture/Case-Sensitive';expect(projectID(posix,'darwin')).toBe(createHash('sha256').update(posix).digest('hex').slice(0,24));
   expect(projectID(posix,'darwin')).not.toBe(projectID(posix.toLowerCase(),'darwin'));
 });

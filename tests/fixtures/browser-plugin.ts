@@ -12,7 +12,7 @@ export const BrowserFixture:Plugin=async ctx=>{
  const module=await import(entry);const exported=Object.keys(module).sort();
  if(JSON.stringify(exported)!==JSON.stringify(['BrowserTools']))throw new Error('Unexpected published browser plugin exports: '+JSON.stringify(exported));
  const hooks=await module.BrowserTools(ctx);
- if(marker)writeFileSync(marker,JSON.stringify({entered:true,imported:true,toolRegistered:!!hooks.tool?.workbench_browser,ownerKeysEqual:directoryKey(owner)===directoryKey(actual),ownerPhysicalEqual:a.dev===b.dev&&a.ino===b.ino}));
- if(!hooks.tool?.workbench_browser)throw new Error('Published browser plugin skipped: '+JSON.stringify({platform:process.platform,enabled:raw.enabled===true,configExists:true,ownerKeysEqual:directoryKey(owner)===directoryKey(actual),ownerPhysicalEqual:a.dev===b.dev&&a.ino===b.ino,ownerHasFileIdentity:a.ino!==0n&&b.ino!==0n}));
+ if(marker)writeFileSync(marker,JSON.stringify({entered:true,imported:true,toolRegistered:!!hooks.tool?.workbench_browser,ownerKeysEqual:directoryKey(owner)===directoryKey(actual),ownerPhysicalEqual:a.dev===b.dev&&a.ino===b.ino,deviceIdentityKnown:a.dev!==0n&&b.dev!==0n}));
+ if(!hooks.tool?.workbench_browser)throw new Error('Published browser plugin skipped: '+JSON.stringify({platform:process.platform,enabled:raw.enabled===true,configExists:true,ownerKeysEqual:directoryKey(owner)===directoryKey(actual),ownerPhysicalEqual:a.dev===b.dev&&a.ino===b.ino,deviceIdentityKnown:a.dev!==0n&&b.dev!==0n,ownerHasFileIdentity:a.ino!==0n&&b.ino!==0n}));
  return hooks;
 };

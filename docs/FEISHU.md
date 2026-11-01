@@ -7,7 +7,7 @@
 - 上述适配已保存为 `adapters/feishu/desktop.patch` 与 `compact-markdown.mjs`，保留来源。它们来自本机先前工作，不将上游整体或这些旧适配冒称此次原创。
 - 此次新增：可复现构建/哈希校验、可选入口、显式 owner directory、测试配置路径、遥测默认关闭、Windows 文件 URL/owner guard、安装迁移说明与隔离测试。
 
-原始许可证见 `third-party/opencode-feishu/LICENSE`。来源元数据包含公开 npm 包 bundle 和本地适配 bundle 的 SHA-256。构建先检查上游哈希，按上下文应用补丁，再检查旧适配哈希，最后施加本项目的新保护：配置路径 override、遥测 opt-in、Windows owner 路径比较、可选发送者/会话限制和引用正文处理。生成文件进入忽略提交的 `.data/feishu`，不修改 node_modules 或当前已安装适配。Windows 完整范围见 [平台说明](WINDOWS.md)。
+原始许可证见 `third-party/opencode-feishu/LICENSE`。来源元数据包含公开 npm 包 bundle 和本地适配 bundle 的 SHA-256。构建先检查上游哈希，按上下文应用补丁，再检查旧适配哈希，最后施加本项目的新保护：配置路径 override、遥测 opt-in、Windows owner 路径及有效物理目录标识比较、可选发送者/会话限制和引用正文处理。生成文件进入忽略提交的 `.data/feishu`，不修改 node_modules 或当前已安装适配。Windows 完整范围见 [平台说明](WINDOWS.md)。
 
 ## 准备及单独启用
 

@@ -37,7 +37,7 @@ export function applyQuotePatch(source:string){
   result=result.replace('  initDedup(resolvedConfig.dedupTtl);','  try { workbenchQuoteCache = new WorkbenchQuoteCache(ctx.directory); } catch { log("warn", "Quote receipt storage unavailable; direct REST reads remain enabled"); }\n  initDedup(resolvedConfig.dedupTtl);');
   result=result.replace('    for (let i = 1; i < finalPages.length; i++) {','    try { workbenchQuoteCache?.remember(this.messageId, this.chatId, this.replyText); } catch { this.log("warn", "Quote receipt storage unavailable"); }\n    for (let i = 1; i < finalPages.length; i++) {');
   result=result.replace('      this.continuationMessageIds.push(sent.messageId);','      this.continuationMessageIds.push(sent.messageId);\n      try { workbenchQuoteCache?.remember(sent.messageId, this.chatId, finalPages[i].text); } catch { this.log("warn", "Quote receipt storage unavailable"); }');
-  result='import { QuoteCache as WorkbenchQuoteCache, resolveQuote as workbenchResolveQuote, quotePrefix as workbenchQuotePrefix } from "./quote.mjs";\nlet workbenchQuoteCache; const workbenchQuoteChats = new Map();\n'+result;
+  result='import { QuoteCache as WorkbenchQuoteCache, resolveQuote as workbenchResolveQuote, quotePrefix as workbenchQuotePrefix, sameOwnerDirectory as workbenchSameOwnerDirectory } from "./quote.mjs";\nlet workbenchQuoteCache; const workbenchQuoteChats = new Map();\n'+result;
   return result;
 }
 export function prepare() {
@@ -54,7 +54,7 @@ export function prepare() {
   result=result.replace('  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;','  if (process.env.OPENCODE_WORKBENCH_FEISHU_TELEMETRY !== "1") return;\n  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;');
   // Keep the upstream/local historical hash chain intact; apply this new
   // Windows-only owner guard after verifying the preserved adaptation.
-  result=result.replace('realpathSync(resolvedConfig.directory) !== realpathSync(ctx.directory)', '(process.platform === "win32" ? realpathSync(resolvedConfig.directory).toLowerCase() !== realpathSync(ctx.directory).toLowerCase() : realpathSync(resolvedConfig.directory) !== realpathSync(ctx.directory))');
+  result=result.replace('realpathSync(resolvedConfig.directory) !== realpathSync(ctx.directory)', '!workbenchSameOwnerDirectory(realpathSync(resolvedConfig.directory), realpathSync(ctx.directory))');
   // New opt-in entry policy, after the historical hash chain. Existing deployed
   // adapters are never overwritten by this builder.
   result=result.replace('  directory: z.string().optional(),\n  model:', '  directory: z.string().optional(),\n  allowedSenderIDs: z.array(z.string().min(1)).min(1).max(200).optional(),\n  allowedChatIDs: z.array(z.string().min(1)).min(1).max(200).optional(),\n  model:');

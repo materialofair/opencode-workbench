@@ -1,5 +1,5 @@
 import {win32,posix} from 'node:path';
-import {mkdirSync,chmodSync} from 'node:fs';
+import {mkdirSync,chmodSync,statSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
@@ -8,6 +8,15 @@ export function directoryKey(directory:string,platform=process.platform){
   if(platform!=='win32')return directory; // Preserve existing macOS/Linux DB identities.
   const normal=win32.normalize(directory).replace(/^\\\\\?\\UNC\\/i,'\\\\').replace(/^\\\\\?\\/,'');
   return normal.toLowerCase(); // Standard case-insensitive Windows project directories.
+}
+// Inputs are already resolved by the plugin owner checks. On Windows, Node
+// and the native host can still spell one NTFS directory with long/8.3 aliases.
+// Accept an alias only with an exact, nonzero device+file identity; never guess.
+type DirectoryIdentity=(path:string)=>{dev:bigint;ino:bigint;isDirectory:()=>boolean};
+export function sameOwnerDirectory(left:string,right:string,platform=process.platform,identify:DirectoryIdentity=path=>statSync(path,{bigint:true})){
+  if(directoryKey(left,platform)===directoryKey(right,platform))return true;
+  if(platform!=='win32')return false;
+  try{const a=identify(left),b=identify(right);return a.isDirectory()&&b.isDirectory()&&a.dev!==0n&&a.ino!==0n&&a.dev===b.dev&&a.ino===b.ino;}catch{return false;}
 }
 export function projectID(directory:string,platform=process.platform){return createHash('sha256').update(directoryKey(directory,platform)).digest('hex').slice(0,24);}
 export function stateDirectory(directory:string,env:NodeJS.ProcessEnv=process.env,home=homedir(),platform=process.platform){

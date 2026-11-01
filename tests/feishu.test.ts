@@ -13,7 +13,7 @@ test('pinned Feishu adaptation reproducibly builds; dynamic backend/auth stays i
   expect(result.baseUrl).toBe('http://127.0.0.1:43210/');expect(result.headers.Authorization).toBe('Basic '+Buffer.from('fixture:fixture-only').toString('base64'));
   expect(()=>c.buildDesktopClientConfig({serverUrl:new URL('https://remote.invalid')},'/fixture',{})).toThrow();
   expect(code).not.toContain('"permission.ask": async');expect(code).toContain('OPENCODE_WORKBENCH_FEISHU_TELEMETRY !== "1"');
-  expect(code).toContain('process.platform === "win32" ? realpathSync(resolvedConfig.directory).toLowerCase()');
+  expect(code).toContain('!workbenchSameOwnerDirectory(realpathSync(resolvedConfig.directory), realpathSync(ctx.directory))');
 });
 test('optional Feishu entry does not start gateway when test configuration is absent',async()=>{
   const root=mkdtempSync(join(tmpdir(),'workbench-feishu-'));const old=process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG;process.env.OPENCODE_WORKBENCH_FEISHU_CONFIG=join(root,'absent.json');

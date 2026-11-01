@@ -37,7 +37,7 @@ Windows PowerShell 同样调用该脚本，项目参数可为 `C:/Code/My Projec
 
 Mac 上已用真实 BrowserSkill 0.4.0 与真实 Chrome 在受控本地页面完成导航、sync、填入合成值、以新 context 点击、读取结果和清理，结束后 owned session 数为零。
 
-隔离整链测试使用真实 OpenCode 1.19.5 和真实无头 Chromium，但飞书 SDK 与 BrowserSkill CLI 为测试协议替身；没有连接真实飞书、发送真实消息或使用云模型。该测试及当前 CI 的确切结果见验证记录，不能替代真实飞书交互卡片验收。Windows 提供代码适配和 CI，尚无 Windows 10/11 Desktop、扩展、真实飞书整链验收。
+隔离整链测试使用真实 OpenCode 1.19.5 和真实无头 Chromium，但飞书 SDK 与 BrowserSkill CLI 为测试协议替身；没有连接真实飞书、发送真实消息或使用云模型。该测试及当前 CI 的确切结果见验证记录，不能替代真实飞书交互卡片验收。Windows 提供代码适配和 CI；本轮已发现并修复短路径/长路径 owner 别名问题，只有有效且相等的设备/文件标识才允许该 Windows 目录匹配。尚无 Windows 10/11 Desktop、扩展、真实飞书整链验收；完整 CI 以具体提交为准。
 
 ## 升级和卸载
 

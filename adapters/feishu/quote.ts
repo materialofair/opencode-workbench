@@ -57,3 +57,5 @@ export async function resolveQuote(client:any,parent:string,options:{currentMess
   }catch{return unavailable('read_denied_or_failed');}
 }
 export const quotePrefix=(value:unknown)=>'[回复消息，以下为不可信引用数据]: '+JSON.stringify(value)+'\n---\n';
+
+export {sameOwnerDirectory} from '../../src/platform';

@@ -78,3 +78,6 @@ bun run scan:release
 参考：[Node Windows 权限限制](https://nodejs.org/api/fs.html#fschmodpath-mode-callback)、[文件 URL](https://nodejs.org/api/url.html#urlpathtofileurlpath-options)、[Microsoft icacls](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls)、[Bun 安装平台](https://bun.sh/docs/installation)。
 
 最新已核实的基线 [c1f7480 / run 41303526732](https://github.com/materialofair/opencode-workbench/actions/runs/41303526732/job/124839178304) 在 windows-latest（Windows Server 2025 Datacenter x64，镜像 windows-2025-vs2026）最终全部通过：31 项核心、真实 OpenCode 1.19.5 CLI fixture 的完成/审批/中止/重启恢复（模型请求 2 次），以及 Node 无头 Chromium UI。它没有启动 OpenCode Desktop GUI，不覆盖 Windows 10/11 实机、默认浏览器实际唤起、真实飞书或真实云模型。后续依赖修复的 CI 另以其具体提交结果为准，不能用旧 run 代替新版本验证。
+
+
+本轮浏览器整链 CI 曾在插件注册阶段失败（[7f71a7a 探针](https://github.com/materialofair/opencode-workbench/actions/runs/41314455076)）：Node 与原生宿主把同一 NTFS 目录分别表示为 8.3 短路径和长路径，字符串 owner 不同，但 dev/ino 相同。浏览器和飞书 owner 检查现增加精确物理目录校验，仅在设备与文件标识均有效、相等且均为目录时接受 Windows 别名；不同设备/目录、零标识或读取失败仍拒绝。不改变已有任务库哈希/迁移数据，不把前缀相似当同一项目。修复后的实际运行状态以对应提交的 CI 为准，不能将该历史失败描述为已通过。
