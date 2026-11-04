@@ -55,6 +55,24 @@ bun run demo
 
 启动链接保存在忽略提交的 `artifacts/demo-url.txt`，由本人在本机浏览器打开。演示没有真实 OpenCode 或飞书执行，进程结束即停止。
 
+## Linux 运维 Skills
+
+已有 SSH 能力时，可单独安装三个运维 Skill，让 OpenCode 按专业流程部署、排障和检查日志：
+
+- `devops-engineer`：Linux 部署、Docker Compose/systemd、nginx 校验、发布验证与回滚。
+- `sre-engineer`：证据优先的故障诊断、最小范围恢复与复盘。
+- `monitoring-expert`：日志关联、资源巡检、健康检查与告警。
+
+```sh
+# 在运行 OpenCode 后端的机器上执行；无需安装依赖或构建 Workbench
+bun scripts/install-ops.ts --project /absolute/path/to/project
+bun scripts/install-ops.ts --project /absolute/path/to/project --apply
+# 所有项目共用时：
+bun scripts/install-ops.ts --global --apply
+```
+
+安装会复制三个完整目录（含 references 与 LICENSE）；默认仅预览，不覆盖内容不同的同名文件。它独立于任务管理/飞书安装，不更改 SSH、OpenCode 权限或模型，不操作服务器。详细示例、更新和卸载见 [Linux 运维 Skills](docs/OPERATIONS_SKILLS.md)。
+
 ## 时间、补跑和权限
 
 - 每天/每周：采用 IANA 时区，例如 `Asia/Shanghai`。夏令时不存在的墙上时间跳过，重复时间同一当地日期只执行一次。

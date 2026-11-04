@@ -1,6 +1,6 @@
 # 第三方声明
 
-原创任务管理器、React 页面、Skill、测试、文档与新适配包装器采用根目录 MIT。第三方版权和许可独立保留。
+原创任务管理器、React 页面、原有 Skill、测试、文档与新适配包装器采用根目录 MIT。第三方版权和许可独立保留。
 
 | 组件 | 固定版本 | 许可 | 处理 |
 | --- | --- | --- | --- |
@@ -15,3 +15,7 @@
 实际直接/间接 npm 依赖版本与许可元数据见 `DEPENDENCIES.json`，由已锁定的 package-lock.json 生成。最终分发依赖时仍须附带各包自己的许可证和必要 NOTICE。可选飞书包含 Lark SDK、OpenTelemetry、zod、代理等上游依赖，不能把整个依赖树统称为本项目 MIT 原创。
 
 本机既有 Desktop loader 和 compact Markdown helper 按用户授权的旧适配整理，不包含真实配置、模型定义、用户会话、日志、机器人标识或凭据。上游链接和许可证必须随补丁保留。不得把上游主要功能改名后冒称原创。
+
+## 运维 Skills
+
+`devops-engineer`、`sre-engineer`、`monitoring-expert` 改编自 [Jeffallan/claude-skills](https://github.com/Jeffallan/claude-skills)，MIT。固定上游提交和逐文件 SHA-256 见 [provenance.json](../third-party/claude-skills/provenance.json)。三个 SKILL.md 已针对内部 Linux/SSH 运维重写；references 保留原文，不宣称原创。原始许可证同时保存在 third-party/claude-skills/LICENSE 和各 Skill 中，安装时一起复制。

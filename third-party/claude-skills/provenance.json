@@ -1,0 +1,33 @@
+{
+  "repository": "https://github.com/Jeffallan/claude-skills",
+  "commit": "078a25cc5bfd8011459be7b91d004e900c1d02d3",
+  "license": "MIT",
+  "adaptation": "SKILL.md entrypoints rewritten for internal Linux operations over existing SSH; upstream references unchanged.",
+  "files": {
+    "skills/devops-engineer/SKILL.md": "552f6b0f31bc5d6cad3c692034407f22319424d2cdb94ade99ec108f760e4285",
+    "skills/devops-engineer/references/deployment-strategies.md": "d09fd909526bac88579c993b85294c210ca76959e38a0018f4d4181f48e2302b",
+    "skills/devops-engineer/references/docker-patterns.md": "09f2deadb4ff260b09e09c25ad2037ea90357e04e2ba2f3fe4711adf61bc59b2",
+    "skills/devops-engineer/references/github-actions.md": "04d2d1c339762948dd513c268482d3ffada30068bbea92f282bf753837cb5e4b",
+    "skills/devops-engineer/references/gitlab-ci.md": "8b4e6492a96ff5b94c07dcddca3a093121845a13bc4f2699844c06f42f3043e2",
+    "skills/devops-engineer/references/incident-response.md": "8410ae3e9c7295f4fda94d7fa85438292e675a4e10dc64a61aead4df162522a4",
+    "skills/devops-engineer/references/kubernetes.md": "658ddf774b90f5eef6a97c117bb41dbcab3b3a551e3888ed7d1c53b7ce02cf28",
+    "skills/devops-engineer/references/platform-engineering.md": "1256d7f015cb45c8e35ad708cf9a51ef429c95945d07705fb416bc89e3bc1bfd",
+    "skills/devops-engineer/references/release-automation.md": "bf546d38622d8f9185939d5d3bafea8859f44a7c60e85957afc39347052abc45",
+    "skills/devops-engineer/references/terraform-iac.md": "0d629d4b9826cbd97c1d5a6e826d701bacd3f057d4092cda0e5bb9da692e922b",
+    "skills/sre-engineer/SKILL.md": "5d70892569c206c6756d709a1e595c79852d2a9de23aa1a63aeb6d5057417514",
+    "skills/sre-engineer/references/automation-toil.md": "6e93b916b246a739e28583f70565abcfee18285141900734ef1587329858272f",
+    "skills/sre-engineer/references/error-budget-policy.md": "ab1eb5849bcb1345b57ed5a34d8836dc853e30968b998601195bfc65f803c0cd",
+    "skills/sre-engineer/references/incident-chaos.md": "063058f0f36d2c420f33dd158f6e96b24328b47043a59ea8523f0391717dfdac",
+    "skills/sre-engineer/references/monitoring-alerting.md": "22479c9718b70d889baf43fa7c6cbbe7015f3ba7d710f627c7da68286ca0adf1",
+    "skills/sre-engineer/references/slo-sli-management.md": "9f56a471eaf30474906deea6009b800eae972097828560ab950d104525b900d2",
+    "skills/monitoring-expert/SKILL.md": "61eab180fba644e69a66868d5b261e2dc4f97094e3c06baa968a9dfea8215eb9",
+    "skills/monitoring-expert/references/alerting-rules.md": "9be1fa760e8cf548b4844d6c955b5ae1a3d64afb9e6db0f39d138f79e93bfb16",
+    "skills/monitoring-expert/references/application-profiling.md": "db873957f8268ca329e86bdc216de556be68ff231d8b4147b65168333af5a51f",
+    "skills/monitoring-expert/references/capacity-planning.md": "8f9cdd499931ab20fffbc89f7325ba3b1336463fbfacaf6d7bb754fc40a9c716",
+    "skills/monitoring-expert/references/dashboards.md": "283607d4b1b94c4abdb8d1ed09668442ea048620f741127367ae52c9cacbcc9c",
+    "skills/monitoring-expert/references/opentelemetry.md": "2f2cf89ca63ed14f9db16a64865e31114134de10e5f9e45ea598a51acaf4623c",
+    "skills/monitoring-expert/references/performance-testing.md": "06c91c245bef33e6ba3a567b34bb7f3e14e1a4cdb7695adff5de80392386ed0a",
+    "skills/monitoring-expert/references/prometheus-metrics.md": "f1c5d9271a599d5e34ac5e06ee2efddd20d08fc327f08a44722da1e51563321e",
+    "skills/monitoring-expert/references/structured-logging.md": "2d17ee1782d39cd07add6961dcba3ee24bd8a6fc0d88e7a8643941b433fdcf80"
+  }
+}
