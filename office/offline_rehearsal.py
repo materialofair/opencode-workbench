@@ -69,6 +69,8 @@ def main():
         env['PYTHONPATH']=str(repo/'office')
         run('python-tests',[str(python),'-m','unittest','discover','-s','office/tests','-v'])
         run('tool-tests',['bun','test','./tests/office.test.ts'])
+        if args.browser_qa:
+            run('browser-tool-tests',['bun','test','./tests/office-html-qa.test.ts','./tests/office-validate-tool.test.ts'])
         trial=out/'trial-project';trial.mkdir()
         run('install-preview',['bun','scripts/install-office.ts','--project',str(trial)])
         if list(trial.iterdir()): raise RuntimeError('Installer preview unexpectedly wrote files')
