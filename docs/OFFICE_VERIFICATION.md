@@ -1,12 +1,12 @@
-# 办公引擎迭代2验收记录
+# 办公引擎迭代2–3验收记录
 
 验证日期：2026-11-13；macOS arm64；独立工作树；Node22.22.2、Bun1.2.18、Python3.13；没有读取用户API凭据或调用公司内网模型。
 
 ## 验证范围
 
 - 完整旧仓库 build、办公adapter build、TypeScript typecheck通过。
-- 完整 Bun 测试：58通过、1跳过（Windows原生ACL）、0失败，含8项办公路径、权限拒绝、安装、取消和协议发现端到端测试。
-- Python单元/真实文件回归包含Excel27、HTML13、CLI2。最终准确计数见本地 `office/evidence/python-final.txt`。
+- 完整 Bun 测试：59通过、1跳过（Windows原生ACL）、0失败，含9项办公路径、权限拒绝、安装、取消和协议发现端到端测试。
+- Python单元/真实文件回归共68项全部通过：Excel27、复杂图表13、HTML17、资源边界9、CLI2，无expectedFailure。
 - 真实OpenCode1.19.5后端：隔离HOME和临时项目，四个工具注册，模拟模型实际调用HTML生成成功；不是GLM5.3质量验证。
 - 五个独立业务场景各1440/768/390视口和额外空数据/长中文/多序列/负值压力样本通过。自动检查网络请求、控制台、溢出、裁切、表caption、重复ID、键盘开合；截图目视覆盖多种桌面/手机。
 - 各场景A4 PDF已生成，检查文本尾部和抽样页面，无发现遮挡；部分末页留白仍需后续排版优化，不称全部分页已精排。
@@ -27,6 +27,16 @@
 
 - 未安装用户现有OpenCode项目；未用真实GLM5.3、企业文件、Windows/Linux内网实机验收。
 - 不支持XLS/XLSB/加密文件、公式计算、VBA执行、任意已有工作簿无损编辑。读取复杂对象不等于能修改它。
-- 锁定Effect beta.83仍有moderate Cookie属性注入公告。当前办公代码未使用该API，但正式发行前需兼容修补/上游升级评估，不能称依赖无漏洞。
+- Effect已升至beta.103并保留原TOML/Zod补丁，Cookie注入回归与真实宿主兼容通过；npm audit为0已知告警，不代表不存在未知漏洞。
 - Python离线依赖齐备，不等于所有操作系统的Node/npm/浏览器/CJK字体离线包已齐备。
 - 本轮只作本地提交，不推送、合并或发布。后续迭代应保持这些边界。
+
+## 第三轮增量证据
+
+- 合成复杂图表矩阵 `office/evidence/chart-matrix/manifest.json`：13/13，无expectedFailure；保留每个xlsx、解析report和hash。
+- `office/evidence/iteration3/`：默认关闭/展开details打印共10份PDF文本校验、15视口与实际键盘横滚检查；null单元格额外样本。
+- `office/evidence/benchmark/report.json`：1k/10k/100k单元格单进程基准，真实内存/时间，非生产性能保证。
+- `office/evidence/npm-audit-effect103-patched.json`：新锁文件0已知漏洞；不涉及用户旧node_modules或Desktop内置依赖。
+- 已修复新发现的hyperlink/sqref资源膨胀、XML节点洪泛、图表越界丢失、现代chartEx漏报、公式标题和隐藏数据语义遗漏，以及打印QA掩盖默认关闭内容的问题。
+
+Effect升级后既有调度器真实隔离集成也已通过：完成、等待审批、中止、重启恢复，模型请求2次且无重复提交。脱敏汇总与源码哈希见 `docs/evidence/office-round3.json`。

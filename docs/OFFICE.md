@@ -95,6 +95,16 @@ HTML 采用 version 1 spec：`scenario/title/sections`，每节含 `type` 与数
 
 - 已准备4个纯Python通用wheel，清单与SHA256在 `office/wheelhouse-manifest.json`；严格安装使用 `pip install --no-index --find-links office/wheelhouse --require-hashes -r office/requirements-offline.lock`。已在全新虚拟环境仅用本地文件完成安装和26项测试。
 - wheels在本地忽略目录，不进入git；发行时需和源码一起打包。Node运行时、npm缓存、匹配Playwright浏览器和目标系统字体仍须按目标平台准备。不要把macOS arm64开发缓存当成Windows/Linux发行包。
-- `npm audit`发现锁定Effect 4.0.0-beta.83的中等风险Cookie属性注入公告 [GHSA-chp3-j5qr-2vfr](https://github.com/advisories/GHSA-chp3-j5qr-2vfr)。办公引擎不使用Cookie API，但依赖链仍存在公告。未盲目降级OpenCode SDK或跨版本升级Effect；企业发行门槛仍须兼容性审查和修补。
+- 第三轮将Effect限定升级到4.0.0-beta.103，修复 [GHSA-chp3-j5qr-2vfr](https://github.com/advisories/GHSA-chp3-j5qr-2vfr)，并保留toml5.0.1/Zod4.6.7覆盖。新增Cookie字段注入拒绝回归、全量测试和隔离真实OpenCode链路通过；该锁文件npm audit为0已知告警，不是未知漏洞安全保证。
 - macOS方便预览：双击 `office/Preview.command`，会在新的本地目录生成合成数据示例，并打开经营看板与文件夹。不会启动服务或改变模型配置。
 - 新工具 `office_capabilities` 返回版本化协议和完整可运行样例，安装到任意项目后无需靠猜测JSON字段或定位源码。
+
+## 迭代3复杂文档与性能
+
+- 13个独立复杂图表case涵盖组合/双轴、日期轴、堆叠、跨表、系列名和标题引用、隐藏数据/空值策略、空缓存、图片混排、特殊图表显式边界。现代chartEx以unsupported记录报告，不再称无图。原生输出锚点校验Excel网格边界与底层返回码，避免静默丢图。
+- OOXML预检流式释放节点，同时限制XML节点、属性长度、sqref token、shared strings、style records，以及stored cells+merge/hyperlink范围展开的累计成本。这些预算共同生效，并在inspect返回/能力协议中可见。
+- 打印独立数据表不依赖details是否展开；QA对默认关闭和展开状态分别打印、核对PDF文本，不通过修改状态掩盖遗漏。手机滚动检查实际键盘输入和最右边可达性。
+- HTML与Excel输入对象严格拒绝未知字段；表格null是空白，不能变成0。图表特殊功能未支持时明确报错或warning。
+- `office/benchmark.py`是可重复合成基准，不是容量承诺。单独进程、1k输出窗口，10万存储cell约1.2秒/123MiB峰值；原始report记录机器、版本、引擎hash、方法和每次结果。真实复杂公司文件仍需单独验收。
+
+子进程仅继承必要系统路径/语言/临时目录变量，不继承无关API密钥和Python启动覆盖；这不是操作系统级完整沙箱。运行中取消或超时会终止子进程，可能留下新建临时文件，需检查后再重试，不承诺撤回已完成的输出。

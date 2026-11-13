@@ -6,6 +6,13 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 var engine = fileURLToPath(new URL("../../office/", import.meta.url));
 var localPython = join(engine, ".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+function workerEnvironment() {
+  const env = { PYTHONPATH: engine, PYTHONDONTWRITEBYTECODE: "1", PYTHONNOUSERSITE: "1" };
+  for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "TMP", "SystemRoot", "SYSTEMROOT", "WINDIR", "COMSPEC", "LANG", "LC_ALL"])
+    if (process.env[key] !== undefined)
+      env[key] = process.env[key];
+  return env;
+}
 async function executeOffice(root, request, signal) {
   if (signal?.aborted)
     throw new Error("Office operation cancelled before execution");
@@ -19,7 +26,7 @@ async function executeOffice(root, request, signal) {
     const child = spawn(python, ["-m", "office_engine", "--root", realpathSync(root)], {
       cwd: engine,
       shell: false,
-      env: { ...process.env, PYTHONPATH: engine, PYTHONDONTWRITEBYTECODE: "1", PYTHONNOUSERSITE: "1" },
+      env: workerEnvironment(),
       stdio: ["pipe", "pipe", "pipe"]
     });
     let out = "", err = "", settled = false;

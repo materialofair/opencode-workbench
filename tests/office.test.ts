@@ -53,3 +53,8 @@ test('capabilities returns runnable HTML and Excel examples without source looku
  const root=mkdtempSync(join(tmpdir(),'office-discover-'));
  try{const plugin=await OfficeArtifacts({directory:root} as any);const context={} as any;const html=JSON.parse(await plugin.tool!.office_capabilities.execute({topic:'html',example:'dashboard'},context) as string);expect(html.protocol_version).toBe(1);const h=JSON.parse(await executeOffice(root,{operation:'render_html',spec:html.example,output:'report.html'}));expect(h.ok).toBe(true);const excel=JSON.parse(await plugin.tool!.office_capabilities.execute({topic:'excel'},context) as string);const x=JSON.parse(await executeOffice(root,{operation:'generate_excel',spec:excel.excel.example,output:'data.xlsx'}));expect(x.ok).toBe(true);}finally{rmSync(root,{recursive:true,force:true});}
 });
+
+test('office worker does not inherit unrelated credentials or Python startup overrides',async()=>{
+ const root=mkdtempSync(join(tmpdir(),'office-env-')),keys=['OPENCODE_OFFICE_PYTHON','OFFICE_TEST_SECRET','PYTHONSTARTUP'];const previous=keys.map(key=>process.env[key]);
+ try{const fake=join(root,'fake-python');writeFileSync(fake,'#!/usr/bin/env node\nconsole.log(JSON.stringify({ok:true,secret:process.env.OFFICE_TEST_SECRET??null,startup:process.env.PYTHONSTARTUP??null}));\n',{mode:0o700});process.env.OPENCODE_OFFICE_PYTHON=fake;process.env.OFFICE_TEST_SECRET='synthetic-test-only';process.env.PYTHONSTARTUP='not-a-real-file';const result=JSON.parse(await executeOffice(root,{}));expect(result.secret).toBe(null);expect(result.startup).toBe(null);}finally{keys.forEach((key,i)=>{if(previous[i]===undefined)delete process.env[key];else process.env[key]=previous[i]});rmSync(root,{recursive:true,force:true});}
+});

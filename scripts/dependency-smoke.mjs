@@ -8,11 +8,16 @@ import * as Effect from 'effect/Effect';
 import * as FileSystem from 'effect/FileSystem';
 import * as Path from 'effect/Path';
 import * as Primitive from 'effect/unstable/cli/Primitive';
+import * as Cookies from 'effect/unstable/http/Cookies';
+import * as Result from 'effect/Result';
 
 const pluginRequire=createRequire(import.meta.resolve('@opencode-ai/plugin'));
 const effectRequire=createRequire(pluginRequire.resolve('effect'));
 assert.equal(pluginRequire('zod/package.json').version,'4.6.7');
 assert.equal(effectRequire('toml/package.json').version,'5.0.1');
+assert.equal(pluginRequire('effect/package.json').version,'4.0.0-beta.103');
+for(const [name,options] of [['bad; Secure',{}],['session',{path:'/; HttpOnly'}],['session',{domain:'example.test; Secure'}]])assert.equal(Result.isFailure(Cookies.makeCookie(name,'value',options)),true,'cookie attributes must reject delimiter injection');
+assert.equal(Result.isSuccess(Cookies.makeCookie('session','value',{path:'/',domain:'example.test',httpOnly:true})),true);
 const z=tool.schema,toml=effectRequire('toml');
 for(const kind of ['array','set','map']){
   let visited=0;const item=z.string().superRefine(()=>{visited++;});
@@ -50,4 +55,4 @@ vm.runInContext(code.slice(code.indexOf('var z2 = tool.schema;'),code.indexOf('f
 assert.equal(context.SelectFieldSchema.safeParse({type:'select',name:'choice',inlineLabel:'Choice',options:[{label:'Valid',value:'valid'}]}).success,true);
 const rejected=context.SelectFieldSchema.safeParse({type:'select',name:'choice',inlineLabel:'Choice',options:Array(1000).fill(null)});
 assert.equal(rejected.success,false);assert.equal(rejected.error.issues.length,1);
-console.log(JSON.stringify({patchedVersions:true,collectionBoundsBeforeElements:true,integerBeforeBigInt:true,boundedTomlShapes:true,effectConsumerCompatible:true,feishuSchemasCompatible:true}));
+console.log(JSON.stringify({patchedVersions:true,cookieAttributeInjectionRejected:true,collectionBoundsBeforeElements:true,integerBeforeBigInt:true,boundedTomlShapes:true,effectConsumerCompatible:true,feishuSchemasCompatible:true}));

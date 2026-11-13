@@ -18,6 +18,11 @@ MAX_FILE = 64 * 1024 * 1024
 MAX_UNPACKED = 128 * 1024 * 1024
 MAX_MEMBERS = 5000
 MAX_CELLS = 100000
+MAX_XML_NODES = 500000
+MAX_SQREF_RANGES = 20000
+MAX_XML_ATTRIBUTE = 65536
+MAX_SHARED_STRINGS = 200000
+MAX_STYLE_RECORDS = 10000
 NS = {'c':'http://schemas.openxmlformats.org/drawingml/2006/chart', 'a':'http://schemas.openxmlformats.org/drawingml/2006/main'}
 FORMATS = {'header': {'bold':True,'bg_color':'#17324D','font_color':'#FFFFFF','text_wrap':True}, 'integer':{'num_format':'#,##0'}, 'number':{'num_format':'#,##0.00'}, 'percent':{'num_format':'0.0%'}, 'currency':{'num_format':'#,##0.00;[Red](#,##0.00)'}, 'date':{'num_format':'yyyy-mm-dd'}, 'wrap':{'text_wrap':True}, 'total':{'bold':True,'top':1,'num_format':'#,##0.00'}}
 SAFE_FUNCTIONS = set('SUM AVERAGE MIN MAX COUNT COUNTA COUNTIF COUNTIFS SUMIF SUMIFS IF IFS IFERROR AND OR NOT ROUND ROUNDUP ROUNDDOWN ABS MOD INT SUBTOTAL SUMPRODUCT INDEX MATCH XLOOKUP VLOOKUP HLOOKUP LEFT RIGHT MID LEN TRIM CONCAT CONCATENATE TEXT DATE YEAR MONTH DAY EOMONTH TODAY'.split())
@@ -59,21 +64,53 @@ def _archive(path):
             if i.file_size>32*1024*1024 or (i.file_size>1024*1024 and i.file_size/max(i.compress_size,1)>200):
                 raise ValueError('Suspicious archive expansion')
         if 'xl/workbook.xml' not in names: raise ValueError('Missing workbook part')
-        # Parse XML with entity/DTD protections before openpyxl sees it.
-        cell_count=0; sheet_count=0
-        for i in infos:
-            if i.filename.endswith(('.xml','.rels')):
-                root=ET.fromstring(z.read(i))
-                if root.tag=='{http://schemas.openxmlformats.org/spreadsheetml/2006/main}worksheet':
-                    sheet_count+=1
-                    cell_count+=sum(1 for node in root.iter() if node.tag=='{http://schemas.openxmlformats.org/spreadsheetml/2006/main}c')
-                    for node in root.iter('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}mergeCell'):
-                        try:
-                            c1,r1,c2,r2=openpyxl.utils.cell.range_boundaries(node.get('ref',''))
-                            if None in (r1,r2,c1,c2) or not 1<=r1<=r2<=1048576 or not 1<=c1<=c2<=16384: raise ValueError('Invalid merge bounds')
-                        except (TypeError,ValueError) as error: raise ValueError('Invalid merged range in workbook') from error
-                        cell_count+=(r2-r1+1)*(c2-c1+1)-1
-                    if cell_count>200000 or sheet_count>100: raise ValueError('Workbook exceeds 200000 stored cells plus merged expansion or 100 sheets; split or use a streaming adapter')
+        # Streaming preflight releases elements before a full OOXML loader sees them.
+        # ZIP byte limits alone do not bound XML nodes or normal-mode range expansion.
+        cell_count=0; sheet_count=0; node_count=0; sqref_count=0; string_count=0; style_count=0
+        for info in infos:
+            if not info.filename.endswith(('.xml','.rels')): continue
+            stack=[]; part_kind=None
+            with z.open(info) as stream:
+                for event,node in ET.iterparse(stream,events=('start','end')):
+                    local=node.tag.split('}')[-1]
+                    if event=='start':
+                        node_count+=1
+                        if node_count>MAX_XML_NODES: raise ValueError('Workbook exceeds XML node budget')
+                        if not stack:
+                            part_kind=local
+                            if part_kind=='worksheet':
+                                sheet_count+=1
+                                if sheet_count>100: raise ValueError('Workbook exceeds 100 sheets')
+                        if len(node.attrib)>100 or any(len(v)>MAX_XML_ATTRIBUTE for v in node.attrib.values()): raise ValueError('Workbook exceeds XML attribute budget')
+                        for key,value in node.attrib.items():
+                            if key.split('}')[-1]=='sqref':
+                                for token in re.finditer(r'\S+',value):
+                                    sqref_count+=1
+                                    if sqref_count>MAX_SQREF_RANGES: raise ValueError('Workbook exceeds sqref range budget')
+                                    try:
+                                        bounds=openpyxl.utils.cell.range_boundaries(token.group())
+                                        if None in bounds: raise ValueError()
+                                    except (TypeError,ValueError) as error: raise ValueError('Invalid sqref range') from error
+                        if part_kind=='worksheet':
+                            if local=='c': cell_count+=1
+                            elif local in ('mergeCell','hyperlink'):
+                                try:
+                                    c1,r1,c2,r2=openpyxl.utils.cell.range_boundaries(node.get('ref',''))
+                                    if None in (r1,r2,c1,c2) or not 1<=r1<=r2<=1048576 or not 1<=c1<=c2<=16384: raise ValueError('Invalid bounds')
+                                except (TypeError,ValueError) as error: raise ValueError('Invalid merge/hyperlink range in workbook') from error
+                                cell_count+=(r2-r1+1)*(c2-c1+1)
+                            if cell_count>200000: raise ValueError('Workbook exceeds 200000 stored cells plus merged expansion and hyperlink expansion; split or use a streaming adapter')
+                        elif part_kind=='sst' and local=='si':
+                            string_count+=1
+                            if string_count>MAX_SHARED_STRINGS: raise ValueError('Workbook exceeds shared string budget')
+                        elif part_kind=='styleSheet' and local in ('xf','dxf'):
+                            style_count+=1
+                            if style_count>MAX_STYLE_RECORDS: raise ValueError('Workbook exceeds style record budget')
+                        stack.append(node)
+                    else:
+                        stack.pop()
+                        if stack: stack[-1].remove(node)
+                        node.clear()
         return z, names
     except BaseException:
         z.close(); raise
@@ -103,7 +140,10 @@ def _charts(z, names):
     for name in names:
         if not name.endswith('.xml'): continue
         root=ET.fromstring(z.read(name))
-        if root.tag!='{http://schemas.openxmlformats.org/drawingml/2006/chart}chartSpace': continue
+        if root.tag!='{http://schemas.openxmlformats.org/drawingml/2006/chart}chartSpace':
+            if root.tag.split('}')[-1] in ('chartSpace','chartEx'):
+                result.append({'part':name,'title':'','plots':[],'axes':[],'format_namespace':root.tag.split('}')[0].lstrip('{'),'supported':False,'warnings':['Unsupported modern or unknown chart format; inventory only, no semantic interpretation']})
+            continue
         plots=[]; warnings=[]
         plot=root.find('.//c:plotArea',NS)
         if plot is not None:
@@ -129,7 +169,10 @@ def _charts(z, names):
         if len(plots)>1: warnings.append('Combination chart: inspect plot axis_ids and axes; visual fidelity is not validated')
         if len(axes)>2: warnings.append('Multiple axes: relationships are reported; visual alignment is not validated')
         title=root.find('.//c:chart/c:title',NS)
-        result.append({'part':name,'title':' '.join(x.text or '' for x in title.findall('.//a:t',NS)) if title is not None else '', 'plots':plots,'axes':axes,'warnings':warnings})
+        title_data=_chart_role(title)
+        chart_node=root.find('c:chart',NS)
+        visibility=_attributes(chart_node,['plotVisOnly','dispBlanksAs','showDLblsOverMax']) if chart_node is not None else {}
+        result.append({'part':name,'title':' '.join(x.text or '' for x in title.findall('.//a:t',NS)) if title is not None else '', 'title_data':title_data,'visibility':visibility,'plots':plots,'axes':axes,'warnings':warnings})
     return result
 
 
@@ -274,7 +317,7 @@ def inspect_workbook(path, options=None):
         for chart in charts:
             chart['sheets']=[name for name,info in drawings.items() if any(o['part']==chart['part'] and o['kind']=='chart' for o in info['objects'])]
         if selection is not None: charts=[c for c in charts if set(c['sheets'])&set(selection)]
-        return {'schema_version':1,'operation':'inspect','source_sha256':hashlib.sha256(Path(path).read_bytes()).hexdigest(),'available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
+        return {'schema_version':1,'operation':'inspect','resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(Path(path).read_bytes()).hexdigest(),'available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
     finally:
         wb.close()
         if cached is not None: cached.close()
@@ -483,8 +526,10 @@ def generate_workbook(spec, output):
                     if cs['type']!='pie': chart.set_y_axis({'name':unit})
                 chart.set_style(10); chart.set_size({'width':720,'height':400})
                 anchor=cs.get('anchor','H2')
-                if not isinstance(anchor,str) or not re.fullmatch(r'[A-Z]{1,3}[1-9][0-9]{0,5}',anchor): raise ValueError('Invalid chart anchor')
-                ws.insert_chart(anchor,chart)
+                if not isinstance(anchor,str) or not re.fullmatch(r'[A-Z]{1,3}[1-9][0-9]{0,6}',anchor): raise ValueError('Invalid chart anchor')
+                anchor_row,anchor_col=xlsxwriter.utility.xl_cell_to_rowcol(anchor)
+                if anchor_row>=1048576 or anchor_col>=16384: raise ValueError('Chart anchor exceeds Excel grid bounds')
+                if ws.insert_chart(anchor,chart)!=0: raise ValueError('Chart insertion failed')
         wb.close(); wb=None
         # Atomic no-clobber publication; link fails even if another writer raced us.
         os.link(tmp,out); os.unlink(tmp)

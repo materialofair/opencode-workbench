@@ -8,6 +8,11 @@ import { join } from 'node:path';
 // The installer embeds this adapter by absolute URL. No credentials/model changes.
 const engine = fileURLToPath(new URL('../../office/', import.meta.url));
 const localPython = join(engine, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+function workerEnvironment(): NodeJS.ProcessEnv {
+  const env:NodeJS.ProcessEnv={PYTHONPATH:engine,PYTHONDONTWRITEBYTECODE:'1',PYTHONNOUSERSITE:'1'};
+  for(const key of ['PATH','HOME','TMPDIR','TEMP','TMP','SystemRoot','SYSTEMROOT','WINDIR','COMSPEC','LANG','LC_ALL'])if(process.env[key]!==undefined)env[key]=process.env[key];
+  return env;
+}
 export async function executeOffice(root: string, request: unknown, signal?: AbortSignal): Promise<string> {
   if(signal?.aborted) throw new Error('Office operation cancelled before execution');
   const encoded = JSON.stringify(request);
@@ -16,7 +21,7 @@ export async function executeOffice(root: string, request: unknown, signal?: Abo
   if (!existsSync(python)) throw new Error('Office Python environment missing. Follow docs/OFFICE.md offline setup.');
   return await new Promise((accept, reject) => {
     const child = spawn(python, ['-m', 'office_engine', '--root', realpathSync(root)], {
-      cwd: engine, shell: false, env: { ...process.env, PYTHONPATH: engine, PYTHONDONTWRITEBYTECODE: '1', PYTHONNOUSERSITE: '1' },
+      cwd: engine, shell: false, env: workerEnvironment(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let out = '', err = '', settled = false;

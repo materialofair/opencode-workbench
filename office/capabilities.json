@@ -14,7 +14,18 @@
       "max_cells": "1..100000, default 10000; shared budget across selected sheets",
       "max_cell_chars": "1..32767, default 1000"
     },
-    "workflow": "Inspect available_sheets first; then use sheets and start_row/start_col to retrieve later windows. Check requested/sample ranges and truncation. Cache freshness is never verified."
+    "workflow": "Inspect available_sheets first; then use sheets and start_row/start_col to retrieve later windows. Check requested/sample ranges and truncation. Cache freshness is never verified.",
+    "resource_limits": {
+      "file_bytes": 67108864,
+      "unpacked_bytes": 134217728,
+      "xml_nodes": 500000,
+      "stored_cells_plus_merge_and_hyperlink_expansion": 200000,
+      "sqref_tokens": 20000,
+      "attribute_characters": 65536,
+      "shared_strings": 200000,
+      "style_records": 10000,
+      "note": "All budgets apply together. Larger/denser documents fail explicitly rather than silently parse partially."
+    }
   },
   "excel": {
     "tool": "office_generate_excel",
@@ -145,13 +156,14 @@
     },
     "section_fields": {
       "kpis": "items:[{label,value,note?}], textual values",
-      "table": "headers:[string],rows:[[primitive]],caption?",
+      "table": "headers:[string],rows:[[string|finite-number|boolean|null]],caption?; null renders blank, never zero",
       "timeline": "items:[{date,title,body?}]",
       "chart": "chart: shared_chart",
       "callout": "body:string",
       "text": "body:string",
       "board": "columns:[{title,items:[{title,body?,tag?}]}]"
     },
+    "unknown_fields": "Rejected at spec, section, chart, series, KPI, timeline, board column and card levels; unsupported intent is never silently ignored.",
     "examples": "Use office_capabilities(topic=html, example=SCENARIO) for a complete runnable example."
   },
   "shared_chart": {

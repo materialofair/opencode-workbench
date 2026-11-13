@@ -1,0 +1,97 @@
+{
+  "date": "2026-11-13",
+  "scope": "macOS arm64 synthetic local tests, no enterprise data or GLM5.3",
+  "source_sha256": {
+    "office/office_engine/excel.py": "1ad8d78e9781db889066f9b4848f2fed9ba7258ba48dc0a8db7d96bc3220ff28",
+    "office/office_engine/html.py": "393b237496c4184606f79abe39001eaaad06a4fda7e4a7d0a0665b79afe98adc",
+    "adapters/office/plugin.ts": "8ca8c802676fdb7bcace6f216cd3a5bac916c1ac29bcdd5a69cff7e598687cab",
+    "package-lock.json": "0f4dd88fe529b4ad5025508f263d5d783adafc2617facf844323af79f0ebd967"
+  },
+  "python": {
+    "passed": 68,
+    "failed": 0,
+    "expected_failures": 0
+  },
+  "bun": {
+    "passed": 59,
+    "failed": 0,
+    "skipped": 1,
+    "skip_reason": "native Windows ACL"
+  },
+  "complex_chart_matrix": {
+    "passed": 13,
+    "failed": 0,
+    "visual_excel_fidelity_tested": false
+  },
+  "html": {
+    "scenarios": 5,
+    "viewports_per_scenario": 3,
+    "closed_and_open_pdf_text_checks": 10,
+    "keyboard_scroll_tested": true
+  },
+  "npm_audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "benchmarks": [
+    {
+      "inspect_seconds": 0.0212,
+      "process_peak_rss_bytes": 36421632,
+      "sampled_cells": 1000,
+      "stored_cells": 1000,
+      "fixture_bytes": 12966
+    },
+    {
+      "inspect_seconds": 0.115,
+      "process_peak_rss_bytes": 43417600,
+      "sampled_cells": 1000,
+      "stored_cells": 10000,
+      "fixture_bytes": 60504
+    },
+    {
+      "inspect_seconds": 1.1449,
+      "process_peak_rss_bytes": 128843776,
+      "sampled_cells": 1000,
+      "stored_cells": 100000,
+      "fixture_bytes": 582855
+    }
+  ],
+  "benchmark_limits": "One fresh process per size; dense numeric cells with 5% cached SUM-free formulas, one 100-point line chart; read-only inspect with 1000-cell output window. Peak RSS includes Python/imports; elapsed inspect excludes import. One run per size, no statistical confidence or production representative claim. Timeout 45 seconds per measurement. No network.",
+  "not_tested": [
+    "GLM5.3 actual model quality",
+    "company intranet",
+    "real company spreadsheets",
+    "Windows/Linux native",
+    "Excel desktop rendering fidelity"
+  ],
+  "real_opencode_office": {
+    "real_backend": true,
+    "real_model": false,
+    "uses_user_credentials": false,
+    "scope": "synthetic temporary project only",
+    "registered_tools": [
+      "office_capabilities",
+      "office_inspect_excel",
+      "office_generate_excel",
+      "office_render_html"
+    ],
+    "artifact_created": true,
+    "model_requests": 2,
+    "success": true
+  },
+  "real_opencode_scheduler": {
+    "version": "1.19.5",
+    "isolated": true,
+    "usesRealCredentials": false,
+    "completionStatus": "succeeded",
+    "approvalStatus": "waiting_approval",
+    "cancelStatus": "interrupted",
+    "restartRecoveredStatus": "succeeded",
+    "modelRequests": 2,
+    "success": true
+  }
+}
