@@ -171,7 +171,31 @@
     },
     "wide_tables": "Tables with more than eight columns keep horizontal keyboard scrolling on screen and print as labeled records to retain every field.",
     "unknown_fields": "Rejected at spec, section, chart, series, KPI, timeline, board column, card and source levels; unsupported intent is never silently ignored.",
-    "examples": "Use office_capabilities(topic=html, example=SCENARIO) for a complete runnable example."
+    "examples": "Use office_capabilities(topic=html, example=SCENARIO) for a complete runnable example.",
+    "validation": {
+      "tool": "office_validate_html",
+      "args": {
+        "input": "existing project-relative .html file",
+        "output": "new project-relative evidence directory; existing parent"
+      },
+      "permissions": [
+        "read input",
+        "edit output/**"
+      ],
+      "mode": "JavaScript disabled; offline; all requests aborted; Chromium sandbox explicitly requested with no downgrade. Fresh browser-context isolation, not OS sandbox. Embedded iframe/frame/object/embed tags conservatively rejected before parsing.",
+      "limits": {
+        "html_bytes": 4194304,
+        "dom_elements": 50000,
+        "viewports": 3,
+        "screenshot_height": 12000,
+        "deadline_seconds": 90,
+        "report_bytes": 1048576,
+        "print_page_cap": 25
+      },
+      "statuses": "passed|failed|blocked|unsupported|limited|cancelled; only passed is success",
+      "artifacts": "report.evidence filenames under evidence_directory; screenshot/PDF visual review required",
+      "print": "Default and open states each get separate layout budgets. Evidence PDF forced A4, 1-25 pages; reaching cap or uncertain page-object count is limited, never complete/pass. Native print pagination still needs visual review."
+    }
   },
   "shared_chart": {
     "type": "bar|line|pie",

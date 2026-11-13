@@ -1,0 +1,450 @@
+{
+  "date": "2026-11-13",
+  "source_sha256": {
+    "office/qa-html.mjs": "367d313815c59e95507076db4cde4770d6608b4e1a8f8e6ff7650d5ad020b9f9",
+    "adapters/office/validate.ts": "897d37d0eb9fd30981aba48114a24df1ef8483b3a116974d114280f9c65e8834",
+    "adapters/office/plugin.ts": "337b5a7f0c503028a0a37d885ea36c95b6b3dc1d79d80ca37e60d910c1399472"
+  },
+  "bun": {
+    "passed": 76,
+    "skipped": 1,
+    "failed": 0
+  },
+  "python": {
+    "passed": 81,
+    "failed": 0
+  },
+  "new_browser_tool_tests": 17,
+  "html_cases": [
+    {
+      "case": "comparison-qa",
+      "status": "passed",
+      "input_sha256": "d2a81c4d174a5295bab4d86191cb7a08a0affc3438099e0f667298e5d6629d54",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 2117,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 2159,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 2946,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "dashboard-qa",
+      "status": "passed",
+      "input_sha256": "0c316e3c343839f5c8d80ad814f553546c7a7472f7cf03146529005dc0a75be7",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 2174,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 2192,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 2651,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "long-research-qa",
+      "status": "passed",
+      "input_sha256": "3d9418dd9934226a278979be04dd4bb9a37ddaea8863ae4f04aacf1cd998c934",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 6665,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 6707,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 9385,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "long-timeline-qa",
+      "status": "passed",
+      "input_sha256": "3f52071ec77aed7965afd5ad4edfcb12f668c62d4d7a742403d6964b4db76beb",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 5928,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 7320,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 10148,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "operations-qa",
+      "status": "passed",
+      "input_sha256": "0001087168bb4e668dfd0e3fb8b8caebea6712488fd76e6bc8a98c4de1954b22",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 2481,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 2558,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 3622,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "project-qa",
+      "status": "passed",
+      "input_sha256": "c291335774c662925d667bbc3007e8755c06617641b49995f46e61cd22290cf2",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 2523,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 2732,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 3130,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "research-qa",
+      "status": "passed",
+      "input_sha256": "155ecbb2f59e2a2868721914a69b19312bb8b5c7c7d22169e3e8b31e579a17e2",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 1950,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 1930,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 2544,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "sparse-summary-qa",
+      "status": "passed",
+      "input_sha256": "374fc10a324e1ccaf627b16dc5ec0bea7620f423c149e26fa00966e7caa323cf",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 1000,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 1024,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 955,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "weighted-decision-qa",
+      "status": "passed",
+      "input_sha256": "09f6c0a29cda422b3bdc99ca2370cc3a1501305dbba7862d5292ea1b06000892",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 1858,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 1735,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 1777,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    },
+    {
+      "case": "wide-operations-qa",
+      "status": "passed",
+      "input_sha256": "2e8dafdcf2bd5d95c582882bfc94e79c25e97f5cbb64ffaae1249d1e8c88241c",
+      "viewports": 3,
+      "screenshots": [
+        {
+          "filename": "viewport-1440.png",
+          "width": 1440,
+          "height": 1466,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-768.png",
+          "width": 768,
+          "height": 1535,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        },
+        {
+          "filename": "viewport-390.png",
+          "width": 390,
+          "height": 1565,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "scroll_positions_zero": true
+        }
+      ]
+    }
+  ],
+  "print_marker_checks": [
+    {
+      "case": "long-research",
+      "status": "passed",
+      "checked_markers": 18,
+      "failed_markers": 0
+    },
+    {
+      "case": "wide-operations",
+      "status": "passed",
+      "checked_markers": 64,
+      "failed_markers": 0
+    },
+    {
+      "case": "sparse-summary",
+      "status": "passed",
+      "checked_markers": 4,
+      "failed_markers": 0
+    },
+    {
+      "case": "long-timeline",
+      "status": "passed",
+      "checked_markers": 60,
+      "failed_markers": 0
+    },
+    {
+      "case": "weighted-decision",
+      "status": "passed",
+      "checked_markers": 13,
+      "failed_markers": 0
+    }
+  ],
+  "independent_security_regressions": [
+    "Nested srcdoc preflight rejected before browser parsing",
+    "Print-only 120024px height rejected before PDF",
+    "160 forced pages with short DOM rejected before PDF",
+    "Explicit chromiumSandbox true with no downgrade"
+  ],
+  "evidence_fixes": [
+    "PNG IHDR dimensions checked against bounded full-page capture",
+    "Top hero and first table-column pixel regressions",
+    "Document and nested scroll origins stable at zero before capture",
+    "Actual input SHA256 binds each report to its source bytes"
+  ],
+  "limitations": [
+    "Static JavaScript-disabled QA only; frames/objects unsupported",
+    "DOM checks and required PDF text markers are not aesthetic or complete layout acceptance",
+    "Browser sandbox is not an OS file/network isolation boundary",
+    "No enterprise GLM5.3, company documents or Windows native validation"
+  ]
+}

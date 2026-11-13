@@ -273,12 +273,12 @@
   ],
   "benchmark_limits": "One fresh process per size; dense numeric cells with 5% cached SUM-free formulas, one last-100-row line chart with exact references and cache cross-checks, outside the cell sample for larger cases; read-only inspect with 1000-cell output window. Peak RSS includes Python/imports; elapsed inspect excludes import. One run per size, no statistical confidence or production representative claim. Timeout 45 seconds per measurement. No network.",
   "offline_rehearsal": {
-    "source_commit": "bc630ce2a81f8d2eae0248fae334956158ea8b11",
+    "source_commit": "8c5cba0acf9486dbd29b8d706ca2ae9385219d49",
     "passed": true,
     "npm": "--offline --ignore-scripts",
     "pip": "--no-index --require-hashes",
     "isolated_config_home": true,
     "stages_passed": 11,
-    "note": "Committed stage-4 application snapshot. Runner corrected separate empty npm user/global config paths after initial failure; runner correction is recorded in the following commit. Host runtimes/browser preprovisioned. No Windows/intranet or OS network-isolation certification."
+    "note": "Exact committed stage-4 application and corrected runner snapshot; all 11 stages passed in isolated HOME. Host runtimes/browser preprovisioned. No Windows/intranet or OS network-isolation certification."
   }
 }

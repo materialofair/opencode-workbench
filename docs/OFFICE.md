@@ -121,4 +121,15 @@ python3 office/offline_rehearsal.py --output ../new-offline-run --npm-cache /pat
 
 该工具只归档指定commit，明确不包含未提交修改；不会联网下载或改用户全局配置。演练报告按stage记录，失败保留日志。Bun测试显式运行`bun test ./tests`，避免把演练副本重复计数。
 
-可重复打印检查：`python3 office/qa-print.py print-closed.pdf office/examples/stress/wide-operations.print-check.json`。使用预置Poppler；缺工具返回blocked，不假称通过。关键标记验证和视觉分页审阅是不同门槛。
+可重复打印检查：`python3 office/qa-print.py print-default.pdf office/examples/stress/wide-operations.print-check.json`。使用预置Poppler；缺工具返回blocked，不假称通过。关键标记验证和视觉分页审阅是不同门槛。
+
+## 静态HTML验收工具
+
+`office_validate_html`读取项目内已有`.html`并写入全新证据目录；宿主分别询问read与edit权限。示例参数：`{"input":"reports/dashboard.html","output":"reports/dashboard-qa"}`。输出结构化状态、三个固定视口截图、默认状态/展开状态PDF与report.json。`office_capabilities`的`html`主题给出详细预算与边界。
+
+- 页面JavaScript禁用，native details/滚动可检查；iframe/frame/object/embed保守拒绝。脚本应用返回unsupported，不能用本工具证明交互应用正确。
+- 全新浏览器上下文、offline与全请求拦截、不使用用户浏览器profile，显式请求Chromium自身sandbox且不自动降级。这不是整个工具的操作系统文件/网络沙箱；不应将不可信HTML视为无风险输入。
+- 需预置Node、锁定Playwright及匹配浏览器；不下载。管理员可设置绝对`OPENCODE_OFFICE_NODE`、`PLAYWRIGHT_BROWSERS_PATH`或`PLAYWRIGHT_CHROMIUM_EXECUTABLE`，工具参数不接受可执行文件或URL。缺浏览器返回blocked。
+- HTML限4MiB、DOM限50,000节点、脚本内90秒/宿主95秒、每个证据限16MiB。超长截图、打印页数达到25页上限均不算通过；打印CSS另检查宽高与强制分页。截图/PDF可能是部分证据，请读status与warning，不只看文件存在。
+- 输出目录不得已存在、不得越出项目；取消/错误可能留下部分新文件，检查后另选新目录重试。同用户进程并发恶意替换路径不在完整OS隔离保证内。
+- `passed`只表示这些静态检查通过，截图仍须人工审美审阅，PDF分页、业务数据与内网GLM效果也分别验收。默认状态打印文件现在叫`print-default.pdf`。
