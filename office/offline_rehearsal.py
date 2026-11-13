@@ -31,9 +31,10 @@ def main():
     report={'source_commit':revision,'node':node,'npm_mode':'--offline --ignore-scripts','pip_mode':'--no-index --require-hashes','preprovisioned_host_tools':True,'uncommitted_edits_included':False,'stages':[],'success':False,'scope':'Developer offline package-manager rehearsal; not target intranet or network-isolation certification'}
     # Fresh config/home: never consume the user's npm/pip credentials or configuration.
     home=out/'isolated-home';home.mkdir()
-    config=out/'empty-npmrc';config.write_text('');config.chmod(0o600)
+    config=out/'empty-user-npmrc';config.write_text('');config.chmod(0o600)
+    global_config=out/'empty-global-npmrc';global_config.write_text('');global_config.chmod(0o600)
     env={key:os.environ[key] for key in ('PATH','TMPDIR','TEMP','TMP','SystemRoot','SYSTEMROOT','WINDIR','COMSPEC','LANG','LC_ALL') if key in os.environ}
-    env.update(HOME=str(home),USERPROFILE=str(home),XDG_CONFIG_HOME=str(home/'config'),XDG_DATA_HOME=str(home/'data'),XDG_CACHE_HOME=str(home/'cache'),XDG_STATE_HOME=str(home/'state'),APPDATA=str(home/'appdata'),LOCALAPPDATA=str(home/'localappdata'),NPM_CONFIG_USERCONFIG=str(config),NPM_CONFIG_GLOBALCONFIG=str(config),PIP_CONFIG_FILE=os.devnull,PIP_NO_INDEX='1',PIP_DISABLE_PIP_VERSION_CHECK='1',npm_config_offline='true',PYTHONDONTWRITEBYTECODE='1')
+    env.update(HOME=str(home),USERPROFILE=str(home),XDG_CONFIG_HOME=str(home/'config'),XDG_DATA_HOME=str(home/'data'),XDG_CACHE_HOME=str(home/'cache'),XDG_STATE_HOME=str(home/'state'),APPDATA=str(home/'appdata'),LOCALAPPDATA=str(home/'localappdata'),NPM_CONFIG_USERCONFIG=str(config),NPM_CONFIG_GLOBALCONFIG=str(global_config),PIP_CONFIG_FILE=os.devnull,PIP_NO_INDEX='1',PIP_DISABLE_PIP_VERSION_CHECK='1',npm_config_offline='true',PYTHONDONTWRITEBYTECODE='1')
     if args.browser_qa:
         default_browser=(Path.home()/'Library/Caches/ms-playwright') if sys.platform=='darwin' else (Path(os.environ.get('LOCALAPPDATA',''))/'ms-playwright') if os.name=='nt' else Path(os.environ.get('XDG_CACHE_HOME',str(Path.home()/'.cache')))/'ms-playwright'
         browsers=Path(os.environ.get('PLAYWRIGHT_BROWSERS_PATH',str(default_browser))).resolve()
