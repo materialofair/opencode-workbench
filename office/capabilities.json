@@ -160,12 +160,14 @@
       "eyebrow": "optional",
       "footer": "optional",
       "sections": "Nonempty array",
-      "interaction": "Optional static (default) | first-party-table. The latter embeds only the fixed local table search/sort runtime; no arbitrary JavaScript."
+      "interaction": "Optional static (default) | first-party-table. The latter embeds only the fixed local table search/sort runtime; no arbitrary JavaScript.",
+      "title_lines": "Optional array of 1..3 nonempty strings whose concatenation exactly equals title; semantic headline line breaks, escaped and responsive."
     },
     "section_common": {
       "type": "kpis|table|timeline|chart|callout|text|board|sources",
       "title": "optional",
-      "width": "full|half"
+      "width": "full|half|main|rail, default full (12/6/8/4 columns; linear mobile/print fallback)",
+      "role": "lead|evidence|aside|action|reference, default evidence; drives semantic hierarchy, not arbitrary positional styling"
     },
     "section_fields": {
       "kpis": "items:[{label,value,note?}], textual values",
@@ -205,7 +207,8 @@
       "artifacts": "report.evidence filenames under evidence_directory; screenshot/PDF visual review required",
       "print": "Default and open states each get separate layout budgets. Evidence PDF forced A4, 1-25 pages; reaching cap or uncertain page-object count is limited, never complete/pass. Native print pagination still needs visual review.",
       "interactive": "Only deterministic table search, reset and stable sort are supported and checked. Unknown/duplicate scripts, event handlers, javascript URLs, embedded frames/objects, base, meta refresh, noscript and template are rejected; scripts cannot be added through tool parameters."
-    }
+    },
+    "composition": "Five scenario-specific reading structures share typography/spacing tokens. research adds real-title anchor navigation. Static table sections with role=aside,width=rail become complete labeled records; interactive tables remain tables. No data is dropped or invented."
   },
   "shared_chart": {
     "type": "bar|line|pie",

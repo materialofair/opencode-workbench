@@ -96,7 +96,7 @@ HTML 采用 version 1 spec：`scenario/title/sections`，每节含 `type` 与数
 - 已准备4个纯Python通用wheel，清单与SHA256在 `office/wheelhouse-manifest.json`；严格安装使用 `pip install --no-index --find-links office/wheelhouse --require-hashes -r office/requirements-offline.lock`。已在全新虚拟环境仅用本地文件完成安装和26项测试。
 - wheels在本地忽略目录，不进入git；发行时需和源码一起打包。Node运行时、npm缓存、匹配Playwright浏览器和目标系统字体仍须按目标平台准备。不要把macOS arm64开发缓存当成Windows/Linux发行包。
 - 第三轮将Effect限定升级到4.0.0-beta.103，修复 [GHSA-chp3-j5qr-2vfr](https://github.com/advisories/GHSA-chp3-j5qr-2vfr)，并保留toml5.0.1/Zod4.6.7覆盖。新增Cookie字段注入拒绝回归、全量测试和隔离真实OpenCode链路通过；该锁文件npm audit为0已知告警，不是未知漏洞安全保证。
-- macOS方便预览：双击 `office/Preview.command`，会在新的本地目录生成合成数据示例，并打开经营看板与文件夹。不会启动服务或改变模型配置。
+- macOS方便预览：双击 `office/Preview.command`，会在新的本地目录生成合成数据示例，并打开多场景导航与文件夹。不会启动服务或改变模型配置。
 - 新工具 `office_capabilities` 返回版本化协议和完整可运行样例，安装到任意项目后无需靠猜测JSON字段或定位源码。
 
 ## 迭代3复杂文档与性能

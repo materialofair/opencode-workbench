@@ -28,7 +28,9 @@
           "value": "3 项",
           "note": "需跨团队解除依赖"
         }
-      ]
+      ],
+      "role": "lead",
+      "width": "full"
     },
     {
       "type": "board",
@@ -84,12 +86,14 @@
             }
           ]
         }
-      ]
+      ],
+      "role": "action",
+      "width": "full"
     },
     {
       "type": "chart",
       "title": "工单负荷与解决量",
-      "width": "full",
+      "width": "main",
       "chart": {
         "type": "bar",
         "title": "工单负荷与解决量",
@@ -123,7 +127,31 @@
           }
         ],
         "unit": "单"
-      }
+      },
+      "role": "evidence"
+    },
+    {
+      "type": "timeline",
+      "title": "下周节奏",
+      "width": "rail",
+      "items": [
+        {
+          "date": "周一 09:30",
+          "title": "容量与优先级",
+          "body": "检查在制上限；新增紧急项需明确替换哪项。"
+        },
+        {
+          "date": "周三 15:00",
+          "title": "阻塞升级",
+          "body": "仅讨论超过24小时未解除的依赖。"
+        },
+        {
+          "date": "周五 16:00",
+          "title": "复盘与关闭",
+          "body": "关闭需要验收证据，不以“已处理”代替完成。"
+        }
+      ],
+      "role": "action"
     },
     {
       "type": "table",
@@ -157,29 +185,9 @@
           "更新并复测FAQ",
           "知识运营"
         ]
-      ]
-    },
-    {
-      "type": "timeline",
-      "title": "下周节奏",
-      "width": "full",
-      "items": [
-        {
-          "date": "周一 09:30",
-          "title": "容量与优先级",
-          "body": "检查在制上限；新增紧急项需明确替换哪项。"
-        },
-        {
-          "date": "周三 15:00",
-          "title": "阻塞升级",
-          "body": "仅讨论超过24小时未解除的依赖。"
-        },
-        {
-          "date": "周五 16:00",
-          "title": "复盘与关闭",
-          "body": "关闭需要验收证据，不以“已处理”代替完成。"
-        }
-      ]
+      ],
+      "role": "evidence",
+      "width": "full"
     }
   ]
 }

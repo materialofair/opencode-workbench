@@ -96,5 +96,13 @@
     "No company documents or Windows native validation",
     "No arbitrary Excel formula computation or lossless editing",
     "Local design references are not aesthetic scores; real screenshots must be reviewed"
-  ]
+  ],
+  "offline_rehearsal": {
+    "source_commit": "d0a2fb124b2d67d1652701d395b87daa5ddf79b0",
+    "passed": true,
+    "isolated_config_home": true,
+    "stage_count": 12,
+    "includes_design_retrieval_installation_and_fixed_runtime_tests": true,
+    "scope": "Developer offline package-manager rehearsal; not target intranet or network-isolation certification"
+  }
 }

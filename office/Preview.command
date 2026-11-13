@@ -8,4 +8,4 @@ mkdir -p "$HERE/evidence"
 BASE=$(mktemp -d "$HERE/evidence/preview-XXXXXX")
 "$PYTHON" "$HERE/demo.py" "$BASE/reports"
 printf '\nExamples: %s\n' "$BASE/reports"
-if command -v open >/dev/null 2>&1; then open "$BASE/reports/dashboard.html"; open "$BASE/reports"; fi
+if command -v open >/dev/null 2>&1; then open "$BASE/reports/index.html"; open "$BASE/reports"; fi

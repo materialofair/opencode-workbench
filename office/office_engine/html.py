@@ -5,6 +5,7 @@ import html
 import json
 import math
 import re
+from decimal import Decimal, localcontext, ROUND_FLOOR, ROUND_CEILING
 from urllib.parse import urlsplit
 from pathlib import Path
 
@@ -37,7 +38,9 @@ def validate_section(section):
     if not isinstance(section, dict) or section.get('type') not in kinds:
         raise ValueError('Unsupported section type')
     kind = section['type']
-    fields(section, {'type', 'title', 'width'} | kinds[kind], f'{kind} section')
+    fields(section, {'type', 'title', 'width', 'role'} | kinds[kind], f'{kind} section')
+    if section.get('role', 'evidence') not in ('lead', 'evidence', 'aside', 'action', 'reference'):
+        raise ValueError('Unknown section role')
     if kind == 'sources':
         for item in seq(section.get('items'), 100):
             fields(item, {'id', 'title', 'publisher', 'date', 'note', 'url'}, 'Source')
@@ -107,6 +110,33 @@ def table(headers, rows, caption='数据明细', interactive=False):
     return markup
 
 
+def nice_axis(values):
+    """Zero-inclusive decimal ticks, bounded before float SVG geometry conversion."""
+    if not values or any(isinstance(v, bool) or not isinstance(v, (int, float)) or abs(v) > 1e15 or not math.isfinite(v) for v in values):
+        raise ValueError('Axis needs bounded finite values')
+    with localcontext() as context:
+        context.prec = 50
+        low = min(Decimal(0), *(Decimal(str(v)) for v in values))
+        high = max(Decimal(0), *(Decimal(str(v)) for v in values))
+        if low == high:
+            high = Decimal(1)
+        raw = (high - low) / 5
+        power = Decimal(10) ** raw.adjusted()
+        step = next(Decimal(n) * power for n in ('1', '2', '2.5', '5', '10') if Decimal(n) * power >= raw)
+        start = (low / step).to_integral_value(rounding=ROUND_FLOOR)
+        end = (high / step).to_integral_value(rounding=ROUND_CEILING)
+        ticks = [(start + i) * step for i in range(int(end - start) + 1)]
+        numbers = [float(v) for v in ticks]
+        span = numbers[-1] - numbers[0]
+        if not math.isfinite(span) or span <= 0 or float(step) <= 0 or len(set(numbers)) != len(numbers):
+            raise ValueError('Axis range cannot be represented safely in SVG')
+        def label(v):
+            if not v:
+                return '0'
+            return format(v.normalize(), 'f') if Decimal('0.0001') <= abs(v) < Decimal('1e9') else format(v.normalize(), '.4g')
+        return numbers[0], numbers[-1], [(n, label(v)) for n, v in zip(numbers, ticks)]
+
+
 def chart_svg(chart, chart_id):
     fields(chart, {'type', 'title', 'unit', 'categories', 'series'}, 'Chart')
     kind = chart.get('type')
@@ -126,11 +156,12 @@ def chart_svg(chart, chart_id):
         values = seq(s['values'], 60)
         if len(values) != len(categories):
             raise ValueError('Chart series and category length mismatch')
-        if any(isinstance(v, bool) or not isinstance(v, (float, int)) or not math.isfinite(v) or abs(v) > 1e15 for v in values):
+        if any(isinstance(v, bool) or not isinstance(v, (float, int)) or abs(v) > 1e15 or not math.isfinite(v) for v in values):
             raise ValueError('Chart values must be bounded finite numbers')
     title = text(chart.get('title', '数据图表'), 200)
     parts = [f'<svg viewBox="0 0 800 340" role="img" aria-labelledby="{chart_id}-title {chart_id}-desc"><title id="{chart_id}-title">{title}</title><desc id="{chart_id}-desc">完整数据见下方可展开数据表。</desc>']
     if kind == 'pie':
+        parts[0] = parts[0].replace('viewBox="0 0 800 340"', 'class="pie-chart" viewBox="100 25 280 280"')
         if len(series) != 1 or len(categories) > 12:
             raise ValueError('Pie requires one series and at most 12 categories')
         values = series[0]['values']
@@ -147,21 +178,17 @@ def chart_svg(chart, chart_id):
                 x1, y1 = 240 + 120 * math.cos(start), 165 + 120 * math.sin(start)
                 x2, y2 = 240 + 120 * math.cos(end), 165 + 120 * math.sin(end)
                 parts.append(f'<path d="M240 165 L{x1:.3f} {y1:.3f} A120 120 0 {int(end-start > math.pi)} 1 {x2:.3f} {y2:.3f} Z" fill="{color}" stroke="white" stroke-width="2"/>')
-            parts.append(f'<rect x="440" y="{30+i*24}" width="10" height="10" rx="3" fill="{color}"/><text x="462" y="{40+i*24}">{text(str(categories[i])[:18] + ('…' if len(str(categories[i])) > 18 else ''))}: {v/total:.1%}</text>')
             start = end
     else:
         vals = [v for s in series for v in s['values']]
-        low, high = min(0, min(vals)), max(0, max(vals))
-        if high == low:
-            high = low + 1
+        low, high, ticks = nice_axis(vals)
         span = high - low
         y = lambda v: 270 - (v - low) / span * 230
         zero = y(0)
-        parts.append(f'<line class="zero-axis" x1="72" y1="{zero}" x2="775" y2="{zero}" stroke="#728786" stroke-width="1.5"/>')
-        for i in range(5):
-            val = low + span * i / 4
+        for val, label in ticks:
             py = y(val)
-            parts.append(f'<line x1="72" y1="{py}" x2="775" y2="{py}" stroke="#dce4e5"/><text x="62" y="{py+4}" text-anchor="end">{val:,.3g}</text>')
+            parts.append(f'<line x1="72" y1="{py}" x2="775" y2="{py}" stroke="#dce4e5"/><text class="axis-tick" x="62" y="{py+4}" text-anchor="end">{label}</text>')
+        parts.append(f'<line class="zero-axis" x1="72" y1="{zero}" x2="775" y2="{zero}" stroke="#728786" stroke-width="1.5"/>')
         step = 690 / len(categories)
         for i, label in enumerate(categories):
             x = 80 + (i + .5) * step
@@ -185,8 +212,11 @@ def chart_svg(chart, chart_id):
                 parts.append(f'<polyline points="{" ".join(points)}" fill="none" stroke="{color}" stroke-width="2.5"/>')
     parts.append('</svg>')
     legend = '<div class="legend">' + ''.join(f'<span><i style="background:{COLORS[i]}"></i>{text(s["name"])}{(" · " + text(chart["unit"])) if chart.get("unit") else ""}</span>' for i, s in enumerate(series)) + '</div>'
+    if kind == 'pie':
+        legend = '<ul class="legend pie-legend" aria-label="构成类别与占比">' + ''.join('<li><i aria-hidden="true" style="background:' + COLORS[i % len(COLORS)] + '"></i><span>' + text(category, 500) + '</span><strong>' + format(series[0]['values'][i] / total, '.1%') + '</strong></li>' for i, category in enumerate(categories)) + '</ul>'
     rows = [[cat] + [s['values'][i] for s in series] for i, cat in enumerate(categories)]
-    return '<p class="scroll-hint">小屏可横向滚动图表；完整标签与数值见下方数据表。</p><div class="chart-scroll" tabindex="0" role="region" aria-label="可横向滚动的图表">' + ''.join(parts) + '</div>' + legend + '<details><summary>查看图表数据 / Chart data</summary>' + table(['类别'] + [s['name'] for s in series], rows, chart.get('title', '图表数据')) + '</details><div class="print-chart-data">' + table(['类别'] + [s['name'] for s in series], rows, chart.get('title', '图表数据') + ' · 图表原始数据（打印）') + '</div>'
+    chart_container = '<div class="pie-container">' if kind == 'pie' else '<p class="scroll-hint">小屏可横向滚动图表；完整标签与数值见下方数据表。</p><div class="chart-scroll" tabindex="0" role="region" aria-label="可横向滚动的图表">'
+    return chart_container + ''.join(parts) + '</div>' + legend + '<details><summary>查看图表数据 / Chart data</summary>' + table(['类别'] + [s['name'] for s in series], rows, chart.get('title', '图表数据')) + '</details><div class="print-chart-data">' + table(['类别'] + [s['name'] for s in series], rows, chart.get('title', '图表数据') + ' · 图表原始数据（打印）') + '</div>'
 
 
 CSS = '''
@@ -195,8 +225,18 @@ CSS = '''
 '''
 
 
+CSS += '\n/* Composition is driven by explicit information roles, not child position. */\nbody{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;background:#f5f7f8;color:#22313c}\n.shell{max-width:1320px}.section{box-shadow:none;border-radius:5px;padding:28px}.section.main{grid-column:span 8}.section.rail{grid-column:span 4}.section.role-lead{border:0;border-top:3px solid var(--accent);background:#edf3f5}.section.role-aside{background:#f0f3f5;border:0}.section.role-action{border-left:4px solid var(--accent)}.section.role-reference{background:transparent;border:0;border-top:1px solid var(--line)}\nheader{border-top:0;border-bottom:1px solid var(--line);padding:16px 0 32px;margin-bottom:32px}.eyebrow,.label{letter-spacing:0;text-transform:none}.eyebrow{font-weight:600}.stamp{border:0;border-radius:0;border-left:1px solid var(--line)}h1{max-width:26ch;letter-spacing:-.025em}h2{font-size:20px;scroll-margin-top:24px}h3{font-size:15px}.subtitle{max-width:68ch}.layout{gap:24px}.kpi-grid{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.kpi,.kpi:first-child{background:transparent;color:var(--ink);border:0;border-radius:0;padding:20px;border-right:1px solid var(--line)}.kpi:first-child .label,.kpi:first-child .note{color:var(--muted)}.kpi .value{font-variant-numeric:tabular-nums;font-size:30px}.kpi .label{color:var(--muted)}.callout{background:transparent;padding:0;border:0}.role-lead .callout{font-size:19px;line-height:1.8}.prose{line-height:1.9;max-width:72ch}td{font-variant-numeric:tabular-nums}.skip-link{position:absolute;left:16px;top:-100px;background:white;padding:12px;z-index:10}.skip-link:focus{top:10px}\n.dashboard .role-lead{padding:24px 32px}.dashboard .role-aside h2{font-size:17px}.dashboard .role-aside .callout{font-size:15px}.dashboard .role-aside td{padding:9px}.dashboard .main .chart-scroll svg{min-width:500px}\n.research .shell{max-width:1240px}.research header{max-width:1020px;margin-left:190px;padding-bottom:32px}.research h1{font-family:"Songti SC","Noto Serif CJK SC",Georgia,serif;font-size:42px;max-width:22ch}.research .document-body{display:grid;grid-template-columns:160px minmax(0,1fr);gap:30px}.report-toc{font-size:12px;align-self:start;position:sticky;top:24px;display:grid;gap:14px;padding-top:12px}.report-toc a{text-decoration:none;color:var(--muted);overflow-wrap:anywhere}.report-toc a:hover{color:var(--accent);text-decoration:underline}.research .section{border:0;border-radius:0;background:transparent;padding:12px 0 28px;border-bottom:1px solid var(--line)}.research .section.main{grid-column:span 8}.research .section.rail{grid-column:span 4;padding:18px;background:#eaf0f5;align-self:start}.research .role-lead{grid-column:span 12;border-top:3px solid var(--accent);padding-top:24px}.research .prose{font-size:16px;line-height:2;max-width:68ch}.research .role-aside{font-size:13px}.research .role-aside h2{font-size:17px}.research .role-aside .callout{font-size:14px}.research .role-reference{font-size:13px}\n.project .section{border-radius:2px}.project .role-action{background:#f0edf6;border-left:4px solid var(--accent)}.project .block-timeline.main{background:transparent;border:0;padding-left:0}.project .timeline li{grid-template-columns:100px 1fr;padding-bottom:32px}.project .timeline article{border-left:3px solid var(--accent);padding-left:24px}.project .timeline time{font-weight:650;color:var(--accent)}.project .role-aside{align-self:start}.project header{border-bottom:3px solid var(--accent)}\n.comparison .section{border-top:0}.comparison .role-lead{background:transparent;border-bottom:2px solid var(--accent);padding-left:0;padding-right:0}.comparison .role-action{background:#f5f1e8}.comparison .block-table.full{padding:24px 0;border:0;background:transparent}.comparison .kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;border:0}.comparison .kpi{border:1px solid var(--line);padding:24px;background:white}.comparison .role-aside{border-top:2px solid var(--accent)}\n.operations .shell{max-width:1480px;padding-top:24px}.operations header{padding:8px 0 20px;margin-bottom:20px;align-items:center}.operations h1{font-size:32px;margin:8px 0}.operations .layout{gap:16px}.operations .section{padding:20px;border-radius:2px}.operations .kpi{padding:12px 20px}.operations .kpi .value{font-size:26px;margin:4px 0}.operations .block-board{border:0;background:transparent;padding:0}.operations .lane{border-radius:0;background:#eaf0f3;border-top:3px solid var(--accent);padding:16px}.operations .card{border-radius:2px;padding:12px;margin-top:10px}.operations .block-table{padding:0;border:0}.operations .block-table h2{padding:4px 0}.operations td,.operations th{padding:9px 12px}.operations .role-action{background:white}.operations .block-timeline .timeline li{padding-bottom:16px}\n@media(max-width:1000px){.research header{margin-left:0}.research .document-body{grid-template-columns:1fr}.report-toc{position:static;display:flex;flex-wrap:wrap;gap:10px 18px;border-bottom:1px solid var(--line);padding:0 0 20px}.report-toc strong{width:100%}}\n@media(max-width:760px){.section.main,.section.rail,.research .section.main,.research .section.rail{grid-column:span 12}.shell{padding:20px 16px 36px}.section,.dashboard .role-lead{padding:20px}.research h1{font-size:32px}.research .prose{font-size:15px}.research .section.rail{padding:20px}.comparison .kpi-grid{grid-template-columns:1fr}.comparison .kpi{padding:18px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{padding:16px}.kpi .value{font-size:26px}.stamp{padding-left:0;border:0}.project .timeline li{grid-template-columns:75px 1fr;gap:8px}.operations .shell{padding:20px 16px}.operations h1{font-size:28px}.operations .section{padding:18px}.operations .block-table,.operations .block-board{padding:0}.dashboard .main .chart-scroll svg{min-width:500px}.role-lead .callout{font-size:16px}}\n@media print{.skip-link,.report-toc{display:none}.research .document-body{display:block}.research header{margin-left:0}.section,.section.role-lead,.section.role-action,.section.role-aside,.research .section.rail{background:white;padding:12px;margin-bottom:14px}.project .timeline li{padding-bottom:16px}.dashboard .main .chart-scroll svg{min-width:0}.research h1{font-size:30px}.operations .shell{padding:0}.kpi .value{font-size:22px}.research .prose{font-size:12px;line-height:1.8}.comparison .kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}\n'
+
+CSS += '.aside-records article{padding:14px 0;border-top:1px solid var(--line)}.aside-records dl{margin:0;font-size:12px}.aside-records dl>div{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;margin:5px 0}.aside-records dt{color:var(--muted)}.aside-records dd{margin:0;overflow-wrap:anywhere}.block-chart.full svg{max-height:400px}.comparison h1{max-width:30ch;text-wrap:balance}.research h1{text-wrap:balance}.project .role-action.rail{align-self:start}@media print{.block-chart.full svg{max-height:260px}.aside-records article{break-inside:avoid}}'
+
+CSS += '.title-line{display:block;overflow-wrap:anywhere}h1:has(.title-line){max-width:none;text-wrap:wrap}'
+
+CSS += 'svg text{font-size:16px}.chart-scroll svg,.dashboard .main .chart-scroll svg{min-width:620px}.block-chart.full svg text{font-size:13px}@media print{.chart-scroll svg,.dashboard .main .chart-scroll svg{min-width:0}svg text{font-size:16px}}'
+
+CSS += '.pie-container{width:100%;max-width:360px;margin:12px auto}.pie-container svg{width:100%;min-width:0;max-height:320px}.pie-legend{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px 20px;font-size:14px}.pie-legend li{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:baseline;min-width:0}.pie-legend li span{overflow-wrap:anywhere}.pie-legend strong{font-weight:600;font-variant-numeric:tabular-nums}.pie-legend i{margin:0}@media print{.pie-container{max-width:240px}.pie-legend{font-size:11px}}'
+
 def render_html(spec, output):
-    fields(spec, {'version', 'scenario', 'title', 'subtitle', 'eyebrow', 'period', 'footer', 'sections', 'interaction'}, 'HTML spec')
+    fields(spec, {'version', 'scenario', 'title', 'subtitle', 'eyebrow', 'period', 'footer', 'sections', 'interaction', 'title_lines'}, 'HTML spec')
     if type(spec.get('version')) is not int or spec.get('version') != 1:
         raise ValueError('HTML spec requires version 1')
     if len(json.dumps(spec, ensure_ascii=False)) > 2_000_000:
@@ -208,6 +248,12 @@ def render_html(spec, output):
     if interaction not in ('static', 'first-party-table'):
         raise ValueError('Unknown interaction mode')
     title = text(spec['title'], 300)
+    title_markup = title
+    if 'title_lines' in spec:
+        lines = spec['title_lines']
+        if not isinstance(lines, list) or not 1 <= len(lines) <= 3 or any(not isinstance(line, str) or not line for line in lines) or ''.join(lines) != spec['title']:
+            raise ValueError('title_lines requires 1..3 nonempty strings joining exactly to title')
+        title_markup = ''.join('<span class="title-line">' + text(line, 300) + '</span>' for line in lines)
     sections = seq(spec.get('sections'), 80)
     if not sections:
         raise ValueError('Document requires sections')
@@ -238,6 +284,8 @@ def render_html(spec, output):
             if s.get('interactive') is True and interaction != 'first-party-table':
                 raise ValueError('interactive table requires first-party-table interaction mode')
             body = table(s.get('headers'), s.get('rows'), s.get('caption', s.get('title', '数据明细')), interaction == 'first-party-table' and s.get('interactive', True))
+            if s.get('role') == 'aside' and s.get('width') == 'rail' and interaction == 'static':
+                body = '<div class="aside-records">' + ''.join('<article><dl>' + ''.join('<div><dt>' + text(h) + '</dt><dd>' + table_cell(value) + '</dd></div>' for h, value in zip(s['headers'], row)) + '</dl></article>' for row in s['rows']) + '</div>'
         elif kind == 'chart':
             body = chart_svg(s['chart'], f'chart-{i}')
             charts.append(s['chart'])
@@ -265,11 +313,13 @@ def render_html(spec, output):
         if s.get('source_ids'):
             body += '<nav class="source-refs" aria-label="本节来源">' + ''.join('<a href="#source-' + sid + '">来源 [' + sid + ']</a>' for sid in s['source_ids']) + '</nav>'
         width = s.get('width', 'full')
-        if width not in ('full', 'half'):
-            raise ValueError('Section width must be full or half')
-        rendered.append(f'<section class="section block-{kind} {width}">{heading}{body}</section>')
+        if width not in ('full', 'half', 'main', 'rail'):
+            raise ValueError('Section width must be full, half, main or rail')
+        role = s.get('role', 'evidence')
+        rendered.append(f'<section class="section block-{kind} {width} role-{role}">{heading}{body}</section>')
+    toc = '<nav class="report-toc" aria-label="报告目录"><strong>阅读导航</strong>' + ''.join(f'<a href="#section-{i}">' + text(section['title'], 300) + '</a>' for i, section in enumerate(sections) if section.get('title')) + '</nav>' if scenario == 'research' else ''
     label, accent = SCENARIOS[scenario]
-    markup = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\'"><title>' + title + '</title><style>' + CSS.replace('ACCENT', accent) + '</style></head><body class="' + scenario + '"><main class="shell" id="main-content"><header><div><div class="eyebrow">' + text(spec.get('eyebrow', label), 200) + '</div><h1>' + title + '</h1><p class="subtitle">' + text(spec.get('subtitle', ''), 2000) + '</p></div><div class="stamp">' + text(spec.get('period', '内部资料 · 本地生成'), 200) + '</div></header><div class="layout">' + ''.join(rendered) + '</div><footer><span>' + text(spec.get('footer', '仅供内部使用 · 数据以业务来源为准'), 500) + '</span><span>OFFICE / ' + text(label) + '</span></footer></main></body></html>'
+    markup = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\'"><title>' + title + '</title><style>' + CSS.replace('ACCENT', accent) + '</style></head><body class="' + scenario + '"><a class="skip-link" href="#main-content">跳到正文</a><main class="shell" id="main-content"><header><div><div class="eyebrow">' + text(spec.get('eyebrow', label), 200) + '</div><h1>' + title_markup + '</h1><p class="subtitle">' + text(spec.get('subtitle', ''), 2000) + '</p></div><div class="stamp">' + text(spec.get('period', '内部资料 · 本地生成'), 200) + '</div></header><div class="document-body">' + toc + '<div class="layout">' + ''.join(rendered) + '</div></div><footer><span>' + text(spec.get('footer', '仅供内部使用 · 数据以业务来源为准'), 500) + '</span><span>OFFICE / ' + text(label) + '</span></footer></main></body></html>'
     if interaction == 'first-party-table':
         import base64
         runtime = (Path(__file__).resolve().parents[1] / 'first-party-table.js').read_text(encoding='utf-8')

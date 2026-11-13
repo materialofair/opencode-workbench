@@ -181,4 +181,71 @@ class HtmlTests(unittest.TestCase):
         s=self.spec();s['sections'][0]['chart'].update(type='pie',series=[{'name':'x','values':[0,0]}])
         with self.assertRaises(ValueError):self.render(s)
 
+class CompositionTests(unittest.TestCase):
+    spec = HtmlTests.spec
+    render = HtmlTests.render
+    def test_semantic_roles_and_widths_are_bounded(self):
+        for role in ['lead','evidence','aside','action','reference']:
+            for width in ['full','half','main','rail']:
+                spec=self.spec();spec['sections'][0].update(role=role,width=width)
+                _,markup=self.render(spec)
+                self.assertIn('role-'+role,markup)
+        for key,value in [('role','javascript'),('width','huge')]:
+            spec=self.spec();spec['sections'][0][key]=value
+            with self.assertRaises(ValueError):self.render(spec)
+    def test_research_navigation_targets_real_headings(self):
+        spec=self.spec();spec['scenario']='research';spec['sections'][0]['title']='<证据>'
+        _,markup=self.render(spec)
+        self.assertIn('href="#section-0">&lt;证据&gt;</a>',markup)
+        self.assertIn('id="section-0"',markup)
+        self.assertIn('class="skip-link"',markup)
+    def test_aside_record_preserves_all_fields_and_escaping(self):
+        spec=self.spec();spec['sections']=[{'type':'table','role':'aside','width':'rail','headers':['信号','责任人','行动'],'rows':[['<风险>','甲','跟进'],['超时',None,'复盘']]}]
+        _,markup=self.render(spec)
+        self.assertIn('<dt>责任人</dt><dd>甲</dd>',markup)
+        self.assertIn('&lt;风险&gt;',markup)
+        self.assertIn('<dt>行动</dt><dd>复盘</dd>',markup)
+        spec['interaction']='first-party-table';_,markup=self.render(spec)
+        self.assertIn('data-office-table',markup)
+        self.assertIn('class="interactive-print"',markup)
+
+class AxisTitleTests(unittest.TestCase):
+    spec = HtmlTests.spec
+    render = HtmlTests.render
+    def test_nice_ticks_zero_and_bounds(self):
+        import math
+        from office_engine.html import nice_axis
+        self.assertEqual([x[1] for x in nice_axis([-45,131])[2]],['-50','0','50','100','150'])
+        self.assertEqual([x[1] for x in nice_axis([860])[2]],['0','200','400','600','800','1000'])
+        for values in [[0,0],[-9,-2],[-.04,.071],[1e-250,2e-250],[-1e15,1e15],[.1,.2]]:
+            low,high,ticks=nice_axis(values)
+            self.assertLessEqual(low,min(values));self.assertGreaterEqual(high,max(values))
+            self.assertTrue(all(math.isfinite(n) for n,_ in ticks))
+            self.assertIn((0.0,'0'),ticks);self.assertLessEqual(len(ticks),8)
+        for values in [[float('inf')],[float('nan')],[10**400],[5e-324]]:
+            with self.assertRaises(ValueError):nice_axis(values)
+    def test_chart_keeps_real_values_and_no_false_zero(self):
+        spec=self.spec();spec['sections'][0]['chart']['series']=[{'name':'raw','values':[-45,131]}]
+        _,markup=self.render(spec)
+        self.assertIn('>-50</text>',markup);self.assertIn('>0</text>',markup)
+        self.assertIn('raw: 131</title>',markup);self.assertIn('raw: -45</title>',markup)
+        self.assertNotIn('>-1</text>',markup)
+    def test_pie_has_complete_responsive_html_category_legend(self):
+        spec=self.spec();chart=spec['sections'][0]['chart'];chart.update(type='pie',categories=['长类别'+ '甲'*60,'其他'],series=[{'name':'样本','values':[3,1]}])
+        _,markup=self.render(spec)
+        self.assertIn('class="pie-container"',markup)
+        self.assertIn('class="legend pie-legend"',markup)
+        self.assertIn('长类别'+'甲'*60,markup)
+        self.assertIn('<strong>75.0%</strong>',markup)
+        self.assertIn('<strong>25.0%</strong>',markup)
+        self.assertNotIn('x="440"',markup)
+        self.assertNotIn('可横向滚动的图表',markup)
+    def test_title_lines_exact_escaped_and_bounded(self):
+        spec=self.spec();spec['title']='甲<乙>丙';spec['title_lines']=['甲','<乙>丙']
+        _,markup=self.render(spec)
+        self.assertIn('<span class="title-line">甲</span><span class="title-line">&lt;乙&gt;丙</span>',markup)
+        for lines in [[],['甲'],['甲','','<乙>丙'],['甲','<','乙','>丙'],'甲<乙>丙']:
+            spec['title_lines']=lines
+            with self.assertRaises(ValueError):self.render(spec)
+
 if __name__=='__main__':unittest.main()

@@ -9,7 +9,8 @@
       "type": "text",
       "title": "决策边界",
       "body": "比较对象为虚构方案A/B/C，评分1—5分，越高越优。权重经业务讨论后仍需审批。本页展示透明计算，不自动替决策者签约。",
-      "width": "full"
+      "width": "full",
+      "role": "lead"
     },
     {
       "type": "kpis",
@@ -29,7 +30,9 @@
           "value": "安全 35%",
           "note": "权重变化可能改变结果"
         }
-      ]
+      ],
+      "role": "evidence",
+      "width": "full"
     },
     {
       "type": "table",
@@ -77,12 +80,14 @@
           4.05,
           3.7
         ]
-      ]
+      ],
+      "role": "evidence",
+      "width": "full"
     },
     {
       "type": "chart",
       "title": "方案综合得分",
-      "width": "half",
+      "width": "main",
       "chart": {
         "type": "bar",
         "title": "方案综合得分",
@@ -102,13 +107,15 @@
           }
         ],
         "unit": "分"
-      }
+      },
+      "role": "evidence"
     },
     {
       "type": "text",
       "title": "敏感性与否决条件",
       "body": "当前推荐B不是无条件结论：\n• 若公司规定数据不得离开内网，C直接淘汰，无需靠加权分补偿。\n• 若安全权重提升到60%，其他权重按比例缩减，A约4.046分、B约4.031分，A略高。\n• 评分缺乏验证时，应先做PoC而非直接采购。",
-      "width": "half"
+      "width": "rail",
+      "role": "aside"
     },
     {
       "type": "table",
@@ -138,12 +145,16 @@
           "合规审查通过",
           "从候选移除"
         ]
-      ]
+      ],
+      "role": "reference",
+      "width": "full"
     },
     {
       "type": "callout",
       "title": "建议决策",
-      "body": "批准两周PoC，不立即采购。费用、合同、数据驻留与供应商条款需由授权人员单独审核。"
+      "body": "批准两周PoC，不立即采购。费用、合同、数据驻留与供应商条款需由授权人员单独审核。",
+      "role": "action",
+      "width": "full"
     }
   ]
 }

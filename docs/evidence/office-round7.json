@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-13",
+  "source_sha256": {
+    "office/office_engine/html.py": "c1f7164377d25deb61f141b971188383ec01afa755b1e7a0950e362fe5e0bd5c",
+    "office/demo.py": "6b3a5873c2df0f3a3b768a70e96be6815225337a9d16992e1de83ab00bbc2ba2",
+    "office/capabilities.json": "a16d678e22e9ba1c666ff10c6f927fc7ac715b25c7066519f5e4f5cf97b1cb0d",
+    "office/tests/test_html.py": "8ea16bae9ace65054805527814bb02e7f0cd03829b95cda242ea6f63c756378e",
+    "office/tests/test_demo.py": "ea58ae14b5260521fb43ca4147bfbf5aeaff69204f9a72c217172efac6a2a13a"
+  },
+  "checks": {
+    "build": "passed",
+    "typecheck": "passed",
+    "bun_full": {
+      "passed": 87,
+      "skipped": 1,
+      "failed": 0,
+      "skip": "Windows-native ACL test on macOS"
+    },
+    "python": {
+      "passed": 112,
+      "failed": 0
+    },
+    "final_browser_regression": {
+      "passed": 18,
+      "failed": 0
+    },
+    "five_scenarios_three_viewports": {
+      "dashboard": "passed",
+      "research": "passed",
+      "project": "passed",
+      "comparison": "passed",
+      "operations": "passed"
+    },
+    "preview_navigation": "passed",
+    "real_opencode_mock_model_workflow": true,
+    "release_audit_findings": 0
+  },
+  "visual_review": {
+    "method": "Actual screenshot inspection separate from structural QA; no automatic aesthetic model or universal pass score",
+    "improvements": [
+      "Five task-specific reading topologies, semantic roles and widths",
+      "Complete labeled exception records instead of clipped narrow table",
+      "Project action beside critical path with full-width burn-down",
+      "Readable nice-number axes and preserved zero baseline",
+      "Exact-title semantic line breaks",
+      "Responsive pie with all category labels and percentages visible on mobile",
+      "Local example navigation with HTML and native Excel links"
+    ],
+    "latest_independent_views": [
+      "research 1440 and 390 before responsive pie: mobile clipping found",
+      "dashboard 1440 with corrected axes and complete aside",
+      "research 390 after responsive pie: all four categories and percentages visible"
+    ],
+    "remaining": [
+      "Dense multi-column tables still scroll on mobile; all columns must be reached for review",
+      "Target fonts and actual company content require a fresh visual review",
+      "No intranet GLM, Windows native, or production business acceptance"
+    ]
+  },
+  "synthetic_examples": true
+}
