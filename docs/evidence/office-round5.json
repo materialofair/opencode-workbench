@@ -446,5 +446,79 @@
     "DOM checks and required PDF text markers are not aesthetic or complete layout acceptance",
     "Browser sandbox is not an OS file/network isolation boundary",
     "No enterprise GLM5.3, company documents or Windows native validation"
-  ]
+  ],
+  "offline_rehearsal": {
+    "source_commit": "17ef34212f067b6145a511ab830e97539b729ec6",
+    "passed": true,
+    "isolated_config_home": true,
+    "stages": [
+      {
+        "name": "npm-offline",
+        "returncode": 0
+      },
+      {
+        "name": "python-environment",
+        "returncode": 0
+      },
+      {
+        "name": "python-offline",
+        "returncode": 0
+      },
+      {
+        "name": "build",
+        "returncode": 0
+      },
+      {
+        "name": "typecheck",
+        "returncode": 0
+      },
+      {
+        "name": "python-tests",
+        "returncode": 0
+      },
+      {
+        "name": "tool-tests",
+        "returncode": 0
+      },
+      {
+        "name": "browser-tool-tests",
+        "returncode": 0
+      },
+      {
+        "name": "install-preview",
+        "returncode": 0
+      },
+      {
+        "name": "install-apply",
+        "returncode": 0
+      },
+      {
+        "name": "examples",
+        "returncode": 0
+      },
+      {
+        "name": "browser-qa",
+        "returncode": 0
+      }
+    ],
+    "scope": "Developer offline package-manager rehearsal; not target intranet or network-isolation certification"
+  },
+  "host_integration": {
+    "real_backend": true,
+    "real_model": false,
+    "uses_user_credentials": false,
+    "scope": "synthetic temporary project only",
+    "registered_tools": [
+      "office_validate_html",
+      "office_capabilities",
+      "office_inspect_excel",
+      "office_generate_excel",
+      "office_render_html"
+    ],
+    "artifact_created": true,
+    "model_requests": 3,
+    "validation_report_created": true,
+    "validation_passed": true,
+    "success": true
+  }
 }
