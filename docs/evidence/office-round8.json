@@ -179,5 +179,15 @@
     "Company-approved GLM5.3 task runs with representative natural-language requests and user permissions",
     "Authorized representative complex business workbooks and target typography/visual acceptance",
     "Target intranet dependency/runtime deployment and Windows-native tests if required"
-  ]
+  ],
+  "offline_rehearsal": {
+    "source_commit": "824e0b586301d1b840260743a52e5e8a531e8a8d",
+    "success": true,
+    "npm_mode": "--offline --ignore-scripts",
+    "pip_mode": "--no-index --require-hashes",
+    "isolated_config_home": true,
+    "archive_sha256": "d39c90117b60379d13d3b29717f785422ef7401149ee77fd1529849490a78f3e",
+    "scope": "Developer offline package-manager rehearsal; not target intranet or network-isolation certification",
+    "stages_passed": 12
+  }
 }
