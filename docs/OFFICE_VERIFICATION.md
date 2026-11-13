@@ -1,4 +1,4 @@
-# 办公引擎迭代2–3验收记录
+# 办公引擎迭代2–4验收记录
 
 验证日期：2026-11-13；macOS arm64；独立工作树；Node22.22.2、Bun1.2.18、Python3.13；没有读取用户API凭据或调用公司内网模型。
 
@@ -6,7 +6,7 @@
 
 - 完整旧仓库 build、办公adapter build、TypeScript typecheck通过。
 - 完整 Bun 测试：59通过、1跳过（Windows原生ACL）、0失败，含9项办公路径、权限拒绝、安装、取消和协议发现端到端测试。
-- Python单元/真实文件回归共68项全部通过：Excel27、复杂图表13、HTML17、资源边界9、CLI2，无expectedFailure。
+- Python单元/真实文件回归共81项全部通过：Excel27、复杂图表13、HTML21、资源边界9、CLI4、公开语料缺陷/快照复现7，无expectedFailure。
 - 真实OpenCode1.19.5后端：隔离HOME和临时项目，四个工具注册，模拟模型实际调用HTML生成成功；不是GLM5.3质量验证。
 - 五个独立业务场景各1440/768/390视口和额外空数据/长中文/多序列/负值压力样本通过。自动检查网络请求、控制台、溢出、裁切、表caption、重复ID、键盘开合；截图目视覆盖多种桌面/手机。
 - 各场景A4 PDF已生成，检查文本尾部和抽样页面，无发现遮挡；部分末页留白仍需后续排版优化，不称全部分页已精排。
@@ -40,3 +40,14 @@
 - 已修复新发现的hyperlink/sqref资源膨胀、XML节点洪泛、图表越界丢失、现代chartEx漏报、公式标题和隐藏数据语义遗漏，以及打印QA掩盖默认关闭内容的问题。
 
 Effect升级后既有调度器真实隔离集成也已通过：完成、等待审批、中止、重启恢复，模型请求2次且无重复提交。脱敏汇总与源码哈希见 `docs/evidence/office-round3.json`。
+
+## 第四轮公开语料与离线产品化
+
+- 外部维护的Apache POI公开测试语料，固定commit e0658769cb7f7da25ec09178805e04069dedc6ed，15文件共859,162字节，Git blob/SHA256与Apache-2.0根许可/NOTICE记录齐全。二进制仅本地评估，不提交/再分发。见 `docs/evidence/public-corpus-manifest.json`。
+- 15/15结构对照通过，0异常/超时；含7个原生chart部件，源32个array公式只对采样窗口内逐项比较，不宣称32项全覆盖或真实Excel计算正确。
+- 这些外部样本找到了自产样例未暴露的问题：ArrayFormula/DataTableFormula对象序列化丢表达式/ref、chartsheet记录遗漏、rich-text标题run间插空格、解析库unsupported警告未透传。已修复，并增加原创最小复现，不复制外部二进制。
+- Excel现在从同一个有界字节快照读取公式与缓存；并发替换文件测试确认不会混入后版本缓存。JSON报告在编码过程中限8MiB，超限不给半截结果。
+- 10份多样HTML内容×3视口通过；24列运营表打印转字段卡，末列不丢；60里程碑完整。引用链支持人工http(s)链接，不自动访问，不冒称核实。5套压力样例明确为原创合成内容。
+- `office/qa-print.py`＋`.print-check.json`使打印关键文字检查可重复；缺Poppler明确blocked，文字通过不代表视觉分页已完美。
+- `office/offline_rehearsal.py`可对精确已提交快照使用本地npm cache和wheelhouse，全新目录完成离线安装、构建、测试、dry-run/apply模拟安装和浏览器QA。需预置工具/浏览器，不把本机演练冒充公司内网或跨平台验收。
+- 较大工作簿测试把原生line图放在末100行：10万cell的图表引用A9901:A10000/B9901:B10000与缓存均核对，位于1千cell输出采样区之外。单元格未用read_only切换；OOXML图表通路独立，超资源预算明确拒绝。

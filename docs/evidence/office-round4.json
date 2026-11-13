@@ -1,0 +1,282 @@
+{
+  "date": "2026-11-13",
+  "source_sha256": {
+    "office/office_engine/excel.py": "88293cd666fb39c95dd88cb48e6b1d09939aea6b665e8396068ef3493da913a2",
+    "office/office_engine/html.py": "c5b7901b2209fbaea1699177b26b5527b570396d1b3bfce6f7b3e0169aaf27d0",
+    "office/office_engine/__main__.py": "f5c4e18320f4f4038746cf6bd3527c89129f048a6777c2bdea37dbd97c99c538"
+  },
+  "python": {
+    "passed": 81,
+    "failed": 0
+  },
+  "bun": {
+    "passed": 59,
+    "skipped": 1,
+    "failed": 0,
+    "explicit_directory": "./tests"
+  },
+  "public_corpus": {
+    "repository": "apache/poi",
+    "commit": "e0658769cb7f7da25ec09178805e04069dedc6ed",
+    "files": 15,
+    "passed": 15,
+    "limits": "Raw XML metadata plus a separately loaded openpyxl workbook are structural cross-checks, not independent Excel calculation or rendered visual validation. Missing/unsupported metadata is reported; no macros, formulas, external links or network fetches are executed.",
+    "cases": [
+      {
+        "file": "62629_toMerge.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "ConditionalFormattingSamples.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "DataValidationEvaluations.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "ExcelPivotTableSample.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "FormulaSheetRange.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "MatrixFormulaEvalTestData.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "NewStyleConditionalFormattings.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "SimpleScatterChart.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 2
+      },
+      {
+        "file": "WithChartSheet.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 1
+      },
+      {
+        "file": "WithThreeCharts.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 3
+      },
+      {
+        "file": "chartTitle_withTitleFormula.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 1
+      },
+      {
+        "file": "evaluate_formula_with_structured_table_references.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "link-external-workbook-b.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "shared_formulas.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      },
+      {
+        "file": "unicodeSheetName.xlsx",
+        "status": "passed_comparisons",
+        "gap_count": 0,
+        "source_chart_count": 0
+      }
+    ]
+  },
+  "html_quality": [
+    {
+      "case": "comparison-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "dashboard-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "long-research-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "long-timeline-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "operations-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "project-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "research-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "sparse-summary-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "weighted-decision-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    },
+    {
+      "case": "wide-operations-qa",
+      "passed": true,
+      "viewports": 3,
+      "blocked_requests": 0,
+      "default_closed_print": true
+    }
+  ],
+  "print_marker_checks": [
+    {
+      "scenario": "long-research",
+      "pdf_text_coverage": "passed",
+      "source_links": 1,
+      "requests": []
+    },
+    {
+      "scenario": "wide-operations",
+      "pdf_text_coverage": "passed",
+      "source_links": 0,
+      "requests": []
+    },
+    {
+      "scenario": "sparse-summary",
+      "pdf_text_coverage": "passed",
+      "source_links": 0,
+      "requests": []
+    },
+    {
+      "scenario": "long-timeline",
+      "pdf_text_coverage": "passed",
+      "source_links": 0,
+      "requests": []
+    },
+    {
+      "scenario": "weighted-decision",
+      "pdf_text_coverage": "passed",
+      "source_links": 0,
+      "requests": []
+    }
+  ],
+  "tail_chart_benchmark": [
+    {
+      "inspect_seconds": 0.0195,
+      "process_peak_rss_bytes": 36487168,
+      "sampled_cells": 1000,
+      "charts": 1,
+      "chart_references": [
+        "Benchmark!$A$1:$A$100",
+        "Benchmark!$B$1:$B$100"
+      ],
+      "tail_chart_verified": true,
+      "chart_outside_cell_sample": false,
+      "stored_cells": 1000,
+      "rows": 100,
+      "columns": 10,
+      "fixture_bytes": 12967,
+      "subprocess_wall_seconds": 0.107
+    },
+    {
+      "inspect_seconds": 0.1139,
+      "process_peak_rss_bytes": 43466752,
+      "sampled_cells": 1000,
+      "charts": 1,
+      "chart_references": [
+        "Benchmark!$A$901:$A$1000",
+        "Benchmark!$B$901:$B$1000"
+      ],
+      "tail_chart_verified": true,
+      "chart_outside_cell_sample": true,
+      "stored_cells": 10000,
+      "rows": 1000,
+      "columns": 10,
+      "fixture_bytes": 60505,
+      "subprocess_wall_seconds": 0.2037
+    },
+    {
+      "inspect_seconds": 1.1308,
+      "process_peak_rss_bytes": 129581056,
+      "sampled_cells": 1000,
+      "charts": 1,
+      "chart_references": [
+        "Benchmark!$A$9901:$A$10000",
+        "Benchmark!$B$9901:$B$10000"
+      ],
+      "tail_chart_verified": true,
+      "chart_outside_cell_sample": true,
+      "stored_cells": 100000,
+      "rows": 10000,
+      "columns": 10,
+      "fixture_bytes": 582863,
+      "subprocess_wall_seconds": 1.2712
+    }
+  ],
+  "benchmark_limits": "One fresh process per size; dense numeric cells with 5% cached SUM-free formulas, one last-100-row line chart with exact references and cache cross-checks, outside the cell sample for larger cases; read-only inspect with 1000-cell output window. Peak RSS includes Python/imports; elapsed inspect excludes import. One run per size, no statistical confidence or production representative claim. Timeout 45 seconds per measurement. No network.",
+  "offline_rehearsal": {
+    "source_commit": "a1f1dd123e68ddf22811d011c9e00f1531ef48f7",
+    "passed": true,
+    "npm": "--offline --ignore-scripts",
+    "pip": "--no-index --require-hashes",
+    "note": "Stage-3 committed snapshot; stage-4 snapshot will be rerun after commit. Host runtimes/browser were preprovisioned. Not Windows/intranet validation."
+  }
+}

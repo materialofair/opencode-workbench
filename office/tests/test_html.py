@@ -123,6 +123,38 @@ class HtmlTests(unittest.TestCase):
             spec=json.loads((root/(name+'.json')).read_text())
             _,html=self.render(spec)
             self.assertEqual(html,(root/(name+'.html')).read_text())
+    def test_sources_strict_and_escaped(self):
+        s=self.spec();s['sections']=[{'type':'text','body':'结论','source_ids':['E1']},{'type':'sources','items':[{'id':'E1','title':'<证据>','url':'https://example.com/evidence','note':'原创合成测试'}]}]
+        _,html=self.render(s)
+        self.assertIn('href="#source-E1"',html)
+        self.assertIn('id="source-E1"',html)
+        self.assertIn('&lt;证据&gt;',html)
+        self.assertIn('rel="noopener noreferrer"',html)
+        for url in ['javascript:alert(1)','data:text/html,x','file:///tmp/x','https:'+'//fixture-user:not-a-secret@example.invalid','https://example.com/has space']:
+            s['sections'][1]['items'][0]['url']=url
+            with self.assertRaises(ValueError):self.render(s)
+    def test_source_references_and_duplicates_rejected(self):
+        for sections in [
+            [{'type':'text','body':'x','source_ids':['missing']}],
+            [{'type':'sources','items':[{'id':'E1','title':'a'},{'id':'E1','title':'b'}]}],
+            [{'type':'sources','items':[{'id':'E1','title':'a','verified':True}]}],
+            [{'type':'sources','items':[{'id':'bad id','title':'a'}]}],
+        ]:
+            s=self.spec();s['sections']=sections
+            with self.assertRaises(ValueError):self.render(s)
+    def test_wide_table_print_preserves_all_fields(self):
+        s=self.spec();headers=['field'+str(i) for i in range(24)];s['sections']=[{'type':'table','headers':headers,'rows':[[str(i) for i in range(24)]]}]
+        _,html=self.render(s)
+        self.assertIn('class="wide-table-print"',html)
+        self.assertIn('<dt>field23</dt><dd>23</dd>',html)
+    def test_stress_examples_reproduce_exactly(self):
+        import json
+        root=Path(__file__).parents[1]/'examples/stress'
+        for path in root.glob('*.json'):
+            if path.name.endswith('.print-check.json'):
+                continue
+            _,html=self.render(json.loads(path.read_text()))
+            self.assertEqual(html,path.with_suffix('.html').read_text())
     def test_zero_pie_rejected(self):
         s=self.spec();s['sections'][0]['chart'].update(type='pie',series=[{'name':'x','values':[0,0]}])
         with self.assertRaises(ValueError):self.render(s)

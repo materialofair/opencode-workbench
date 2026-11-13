@@ -13,7 +13,7 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test tests",
+    "test": "bun test ./tests",
     "demo": "bun scripts/demo.ts",
     "scan": "bun scripts/scan.ts",
     "scan:release": "bun scripts/release-audit.ts",

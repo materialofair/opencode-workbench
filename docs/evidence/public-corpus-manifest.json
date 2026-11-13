@@ -1,0 +1,177 @@
+{
+  "repository": "apache/poi",
+  "commit": "e0658769cb7f7da25ec09178805e04069dedc6ed",
+  "license": "Apache-2.0 (repository legal/LICENSE; no per-binary notice)",
+  "license_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/legal/LICENSE",
+  "redistribution": "Internal evaluation only; ignored binaries must not be committed or redistributed by this task",
+  "files": [
+    {
+      "name": "62629_toMerge.xlsx",
+      "path": "test-data/spreadsheet/62629_toMerge.xlsx",
+      "bytes": 21827,
+      "git_blob_sha": "dac7d765e12ebbcb7faa6daad53920f28727547c",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/62629_toMerge.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/62629_toMerge.xlsx",
+      "sha256": "f1b366244c3c1af0a61f97e777ebe9fd00576ef6c16f48f65fc755fa6e8a498f"
+    },
+    {
+      "name": "ConditionalFormattingSamples.xlsx",
+      "path": "test-data/spreadsheet/ConditionalFormattingSamples.xlsx",
+      "bytes": 654688,
+      "git_blob_sha": "afaa40aa944359b27b0f088b2331a33060280e09",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/ConditionalFormattingSamples.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/ConditionalFormattingSamples.xlsx",
+      "sha256": "8dfa997a642c00a1da8c0750c371f204553a98c537ca046028b052f9b424a074"
+    },
+    {
+      "name": "DataValidationEvaluations.xlsx",
+      "path": "test-data/spreadsheet/DataValidationEvaluations.xlsx",
+      "bytes": 13679,
+      "git_blob_sha": "5bf8872bf96931139184c37c5a37e19e038683e2",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/DataValidationEvaluations.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/DataValidationEvaluations.xlsx",
+      "sha256": "ea5706d9afc031a8c2afef880559483bad30ab2c18e2857aca5f3cfaa74decf4"
+    },
+    {
+      "name": "ExcelPivotTableSample.xlsx",
+      "path": "test-data/spreadsheet/ExcelPivotTableSample.xlsx",
+      "bytes": 19460,
+      "git_blob_sha": "bab0b0b7b210d8beec2d656813bccd6b04429d17",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/ExcelPivotTableSample.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/ExcelPivotTableSample.xlsx",
+      "sha256": "f0ef1d61c9f3d8b27b18a876b8e24676314c6450ed64a725a7bfaa603fdd67e3"
+    },
+    {
+      "name": "FormulaSheetRange.xlsx",
+      "path": "test-data/spreadsheet/FormulaSheetRange.xlsx",
+      "bytes": 12949,
+      "git_blob_sha": "3da4eb1f8bcb5b055a01705f0c75ff92177c459a",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/FormulaSheetRange.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/FormulaSheetRange.xlsx",
+      "sha256": "1943a81a9d439e3bb843b66fd2f9bcdcf37e31232c850ea31d47681b5d5efa12"
+    },
+    {
+      "name": "MatrixFormulaEvalTestData.xlsx",
+      "path": "test-data/spreadsheet/MatrixFormulaEvalTestData.xlsx",
+      "bytes": 14875,
+      "git_blob_sha": "8145eceeb56085933b146718f0f467c8fa2d62fd",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/MatrixFormulaEvalTestData.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/MatrixFormulaEvalTestData.xlsx",
+      "sha256": "12f1dcef889c20fe54a09857790ba9803a7b061cc9fc5b85d0038cd6c86faa79"
+    },
+    {
+      "name": "NewStyleConditionalFormattings.xlsx",
+      "path": "test-data/spreadsheet/NewStyleConditionalFormattings.xlsx",
+      "bytes": 13378,
+      "git_blob_sha": "93c034f0be416f055ab40de742668c5e8077d30a",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/NewStyleConditionalFormattings.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/NewStyleConditionalFormattings.xlsx",
+      "sha256": "1e97af3b87636bd0a759c25439a21b928c2ff3b9a3c57ca49ae24cb1ccdb7e2f"
+    },
+    {
+      "name": "SimpleScatterChart.xlsx",
+      "path": "test-data/spreadsheet/SimpleScatterChart.xlsx",
+      "bytes": 18278,
+      "git_blob_sha": "207638d57be3f310e9ee216fb40243bd05447ffc",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/SimpleScatterChart.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/SimpleScatterChart.xlsx",
+      "sha256": "c3024ac94d6d42cbe48d20a798eda98b06d8dba6e2ed2b1fcda10659883c7be4"
+    },
+    {
+      "name": "WithChartSheet.xlsx",
+      "path": "test-data/spreadsheet/WithChartSheet.xlsx",
+      "bytes": 30333,
+      "git_blob_sha": "8defbd6cc4b80d9c5ff3807cf47c061bb54b9362",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/WithChartSheet.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/WithChartSheet.xlsx",
+      "sha256": "792b9f21afdb6b8b1f82345864ee15d55c17a1b54d71c250e82c87304385d362"
+    },
+    {
+      "name": "WithThreeCharts.xlsx",
+      "path": "test-data/spreadsheet/WithThreeCharts.xlsx",
+      "bytes": 13841,
+      "git_blob_sha": "e7398e274bce4b97f9f8329cdb43f038f135c6e3",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/WithThreeCharts.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/WithThreeCharts.xlsx",
+      "sha256": "629b69bd250d9b4e173eb2088eb80b656b7748b0287cd7b0df0c2dc22c6af7b0"
+    },
+    {
+      "name": "chartTitle_withTitleFormula.xlsx",
+      "path": "test-data/spreadsheet/chartTitle_withTitleFormula.xlsx",
+      "bytes": 13515,
+      "git_blob_sha": "0f609ca3b6868b2def4108fdd474ba17ba88355f",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/chartTitle_withTitleFormula.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/chartTitle_withTitleFormula.xlsx",
+      "sha256": "120375c8bfd5b5e7cbb388531a1f328adde31f628419cfdc29202981e3a7bd93"
+    },
+    {
+      "name": "evaluate_formula_with_structured_table_references.xlsx",
+      "path": "test-data/spreadsheet/evaluate_formula_with_structured_table_references.xlsx",
+      "bytes": 9198,
+      "git_blob_sha": "a4f9caad348cb111eb258c43b5f52a482a234624",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/evaluate_formula_with_structured_table_references.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/evaluate_formula_with_structured_table_references.xlsx",
+      "sha256": "f460fced2f6bac1f5b4b7d400fd7f2e3ff379af478c01d26388744cefd37a93a"
+    },
+    {
+      "name": "link-external-workbook-b.xlsx",
+      "path": "test-data/spreadsheet/link-external-workbook-b.xlsx",
+      "bytes": 4080,
+      "git_blob_sha": "30d08f310c34106881673a8a7d57800318eee4a1",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/link-external-workbook-b.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/link-external-workbook-b.xlsx",
+      "sha256": "6e0e5c2aa3bf870cfeba03cb2350c312c639f2875b6501029d0bc134916b2361"
+    },
+    {
+      "name": "shared_formulas.xlsx",
+      "path": "test-data/spreadsheet/shared_formulas.xlsx",
+      "bytes": 10137,
+      "git_blob_sha": "0a3cb70cb4442c6a1c7a8a93d0bf2e59ff41e588",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/shared_formulas.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/shared_formulas.xlsx",
+      "sha256": "31612d513b5ea5aaa69764779f87ac52588687770f3ccbf4b420ec21bc70561f"
+    },
+    {
+      "name": "unicodeSheetName.xlsx",
+      "path": "test-data/spreadsheet/unicodeSheetName.xlsx",
+      "bytes": 8924,
+      "git_blob_sha": "8c0fa8c4d15fa1e7b62bbec3c0c402a90c7ac387",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/unicodeSheetName.xlsx",
+      "download_url": "https://raw.githubusercontent.com/apache/poi/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet/unicodeSheetName.xlsx",
+      "sha256": "2d7414dd71e5b3e33602c19ad454f072771ea164d7477a3b3b4cddf6c622dc67"
+    }
+  ],
+  "license_files": [
+    {
+      "file": "LICENSE",
+      "sha256": "ea0cbf26e0de453f0880ed1066088638d768b50cc88d2f1d2b1e9eb02b0905ea",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/legal/LICENSE"
+    },
+    {
+      "file": "NOTICE",
+      "sha256": "fb59fee5922136fb77d400146d31df738c8f1461d4fa95ad68aa7bbafa75c00d",
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/legal/NOTICE"
+    }
+  ],
+  "upstream_assertion_sources": [
+    {
+      "source_url": "https://github.com/apache/poi/blob/e0658769cb7f7da25ec09178805e04069dedc6ed/poi-ooxml/src/test/java/org/apache/poi/xssf/usermodel/TestXSSFChart.java",
+      "method": "testGetCharts",
+      "fixture": "WithThreeCharts.xlsx",
+      "assertions": [
+        "per-sheet chart counts [0,2,1]",
+        "title Pie Chart Title Thingy",
+        "title Sheet 3 Chart with Title"
+      ]
+    }
+  ],
+  "download_policy": {
+    "per_file_limit_bytes": 10485760,
+    "total_files": 15,
+    "total_bytes": 859162,
+    "git_blob_verified": true,
+    "execute_macros": false,
+    "refresh_external_links": false,
+    "commit_binaries": false
+  }
+}

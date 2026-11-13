@@ -29,7 +29,7 @@ npm ci --ignore-scripts
 bun run build
 bun run typecheck
 bunx playwright install chromium
-bun test tests
+bun test ./tests
 ```
 
 UI 测试需要 Playwright Chromium。已有浏览器可通过 `PLAYWRIGHT_CHROMIUM_EXECUTABLE` 指定；否则开发机上按 Playwright 指引安装 Chromium。macOS 缓存会自动探测；其他平台默认使用 Playwright 的浏览器位置。

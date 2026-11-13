@@ -25,6 +25,11 @@
       "shared_strings": 200000,
       "style_records": 10000,
       "note": "All budgets apply together. Larger/denser documents fail explicitly rather than silently parse partially."
+    },
+    "output_notes": {
+      "formula_records": "formula_type and formula_metadata preserve normal/array/dataTable semantics; formula expression is text or null when none exists. Cached values are unverified.",
+      "sheet_kind": "worksheet has a cell grid; chartsheet has dimensions=null and no cell window, but chart/drawing relationships remain.",
+      "library_warnings": "Unsupported extensions/header/footer/etc warnings are captured. Omitted in-memory interpretation does not mean source file was modified."
     }
   },
   "excel": {
@@ -150,7 +155,7 @@
       "sections": "Nonempty array"
     },
     "section_common": {
-      "type": "kpis|table|timeline|chart|callout|text|board",
+      "type": "kpis|table|timeline|chart|callout|text|board|sources",
       "title": "optional",
       "width": "full|half"
     },
@@ -159,11 +164,13 @@
       "table": "headers:[string],rows:[[string|finite-number|boolean|null]],caption?; null renders blank, never zero",
       "timeline": "items:[{date,title,body?}]",
       "chart": "chart: shared_chart",
-      "callout": "body:string",
-      "text": "body:string",
-      "board": "columns:[{title,items:[{title,body?,tag?}]}]"
+      "callout": "body:string,source_ids?:[defined-source-id]",
+      "text": "body:string,source_ids?:[defined-source-id]",
+      "board": "columns:[{title,items:[{title,body?,tag?}]}]",
+      "sources": "items:[{id,title,publisher?,date?,note?,url?}]; unique ASCII ids; URL optional http(s) without credentials; never fetched or verified by engine"
     },
-    "unknown_fields": "Rejected at spec, section, chart, series, KPI, timeline, board column and card levels; unsupported intent is never silently ignored.",
+    "wide_tables": "Tables with more than eight columns keep horizontal keyboard scrolling on screen and print as labeled records to retain every field.",
+    "unknown_fields": "Rejected at spec, section, chart, series, KPI, timeline, board column, card and source levels; unsupported intent is never silently ignored.",
     "examples": "Use office_capabilities(topic=html, example=SCENARIO) for a complete runnable example."
   },
   "shared_chart": {

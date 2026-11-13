@@ -27,7 +27,7 @@ python3 -m venv office/.venv
 bun scripts/build-office.ts
 bun run typecheck
 PYTHONPATH=office office/.venv/bin/python -m unittest discover -s office/tests -v
-bun test tests/office.test.ts
+bun test ./tests/office.test.ts
 ```
 
 Windows 使用 `office/.venv/Scripts/python.exe`，可通过**运行宿主时由管理员配置的** `OPENCODE_OFFICE_PYTHON` 指向已审批的解释器。工具参数不能改变解释器。本版本 Windows 未实机验收，不宣称生产可用。
@@ -108,3 +108,17 @@ HTML 采用 version 1 spec：`scenario/title/sections`，每节含 `type` 与数
 - `office/benchmark.py`是可重复合成基准，不是容量承诺。单独进程、1k输出窗口，10万存储cell约1.2秒/123MiB峰值；原始report记录机器、版本、引擎hash、方法和每次结果。真实复杂公司文件仍需单独验收。
 
 子进程仅继承必要系统路径/语言/临时目录变量，不继承无关API密钥和Python启动覆盖；这不是操作系统级完整沙箱。运行中取消或超时会终止子进程，可能留下新建临时文件，需检查后再重试，不承诺撤回已完成的输出。
+
+## 外部语料与离线演练
+
+[Apache POI固定测试语料](https://github.com/apache/poi/tree/e0658769cb7f7da25ec09178805e04069dedc6ed/test-data/spreadsheet)用于外部结构对照。15份通过不是任意公司工作簿保证，也不是公式计算或Excel渲染验收。来源/许可/哈希见 `docs/evidence/public-corpus-manifest.json`；本仓库不包含这些二进制。数组/数据表公式输出formula_type与formula_metadata，chartsheet会显式记录，解析库未支持功能会在library_warnings报告。
+
+完整离线安装演练（在开发源仓库运行，目标目录必须新建，runtime/browser需预置）：
+
+```sh
+python3 office/offline_rehearsal.py --output ../new-offline-run --npm-cache /path/to/prepared/npm-cache --wheelhouse office/wheelhouse --ref HEAD --browser-qa
+```
+
+该工具只归档指定commit，明确不包含未提交修改；不会联网下载或改用户全局配置。演练报告按stage记录，失败保留日志。Bun测试显式运行`bun test ./tests`，避免把演练副本重复计数。
+
+可重复打印检查：`python3 office/qa-print.py print-closed.pdf office/examples/stress/wide-operations.print-check.json`。使用预置Poppler；缺工具返回blocked，不假称通过。关键标记验证和视觉分页审阅是不同门槛。

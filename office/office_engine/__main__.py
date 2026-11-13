@@ -6,6 +6,17 @@ from pathlib import Path
 import sys
 
 MAX_REQUEST = 1_048_576
+MAX_REPORT = 8_388_607
+
+def encode_report(result):
+    output=bytearray()
+    encoder=json.JSONEncoder(ensure_ascii=False,allow_nan=False,default=str)
+    for chunk in encoder.iterencode(result):
+        data=chunk.encode('utf-8')
+        if len(output)+len(data)>MAX_REPORT: raise ValueError('Office report exceeds 8 MiB; request a smaller sheet/window/cell budget')
+        output.extend(data)
+    return output
+
 
 def scoped(root, value, output=False):
     if not isinstance(value, str) or not value or '\x00' in value:
@@ -54,7 +65,8 @@ def main():
             raise ValueError('Request exceeds 1 MiB')
         request = json.loads(raw, parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Non-finite JSON value')))
         result = run(request, root)
-        print(json.dumps(result, ensure_ascii=False, allow_nan=False, default=str))
+        encoded=encode_report(result)
+        sys.stdout.buffer.write(encoded+b'\n')
     except Exception as error:
         print(json.dumps({'ok': False, 'error': type(error).__name__, 'message': str(error)[:1000]}, ensure_ascii=False))
         return 1

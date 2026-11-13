@@ -4,6 +4,8 @@ import hashlib
 import html
 import json
 import math
+import re
+from urllib.parse import urlsplit
 from pathlib import Path
 
 SCENARIOS = {'dashboard': ('经营驾驶舱', '#216c61'), 'research': ('研究报告', '#395f9d'), 'project': ('项目进展', '#6750a4'), 'comparison': ('决策比较', '#926320'), 'operations': ('运营工作台', '#296681')}
@@ -30,13 +32,25 @@ def table_cell(value):
 
 def validate_section(section):
     kinds = {'kpis': {'items'}, 'table': {'headers', 'rows', 'caption'},
-             'timeline': {'items'}, 'chart': {'chart'}, 'callout': {'body'},
-             'text': {'body'}, 'board': {'columns'}}
+             'timeline': {'items'}, 'chart': {'chart'}, 'callout': {'body', 'source_ids'},
+             'text': {'body', 'source_ids'}, 'board': {'columns'}, 'sources': {'items'}}
     if not isinstance(section, dict) or section.get('type') not in kinds:
         raise ValueError('Unsupported section type')
     kind = section['type']
     fields(section, {'type', 'title', 'width'} | kinds[kind], f'{kind} section')
-    if kind == 'kpis':
+    if kind == 'sources':
+        for item in seq(section.get('items'), 100):
+            fields(item, {'id', 'title', 'publisher', 'date', 'note', 'url'}, 'Source')
+            if not isinstance(item.get('id'), str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{0,63}', item['id']):
+                raise ValueError('Source id must be a bounded ASCII identifier')
+            text(item['title'], 500)
+            if 'url' in item:
+                if not isinstance(item['url'], str) or len(item['url']) > 2048:
+                    raise ValueError('Source URL must be bounded text')
+                url = urlsplit(item['url'])
+                if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password or any(c.isspace() for c in item['url']):
+                    raise ValueError('Source URL must be http(s) without credentials')
+    elif kind == 'kpis':
         for item in seq(section.get('items'), 8):
             fields(item, {'label', 'value', 'note'}, 'KPI')
     elif kind == 'timeline':
@@ -78,7 +92,14 @@ def table(headers, rows, caption='数据明细'):
         body.append('<tr>' + ''.join(f'<td>{table_cell(v)}</td>' for v in row) + '</tr>')
     if not rows:
         body.append(f'<tr><td colspan="{len(headers)}" class="empty-state">暂无记录</td></tr>')
-    return '<div class="table-scroll" tabindex="0" role="region" aria-label="' + text(caption) + '"><table><caption>' + text(caption) + '</caption><thead><tr>' + ''.join('<th scope="col">' + text(v) + '</th>' for v in headers) + '</tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>'
+    markup = '<div class="table-scroll" tabindex="0" role="region" aria-label="' + text(caption) + '"><table><caption>' + text(caption) + '</caption><thead><tr>' + ''.join('<th scope="col">' + text(v) + '</th>' for v in headers) + '</tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>'
+    if len(headers) > 8:
+        records = []
+        for i, row in enumerate(rows):
+            pairs = ''.join('<div><dt>' + text(key) + '</dt><dd>' + table_cell(value) + '</dd></div>' for key, value in zip(headers, row))
+            records.append(f'<article class="print-record"><h3>记录 {i+1}</h3><dl>{pairs}</dl></article>')
+        return '<div class="wide-table-screen">' + markup + '</div><div class="wide-table-print"><h3>' + text(caption) + '</h3>' + ''.join(records) + '</div>'
+    return markup
 
 
 def chart_svg(chart, chart_id):
@@ -164,8 +185,8 @@ def chart_svg(chart, chart_id):
 
 
 CSS = '''
-.print-chart-data{display:none}:focus-visible{outline:3px solid #c37e23;outline-offset:4px}.empty-state{padding:24px;color:#637778;background:#f4f7f5;text-align:center}.scroll-hint{display:none;font-size:11px;color:#637778}thead{display:table-header-group}tr{break-inside:avoid}
-:root{color-scheme:light;--ink:#203536;--muted:#637778;--paper:#f1f4f2;--line:#dce5e1;--accent:ACCENT}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.65}a{color:var(--accent)}.shell{max-width:1280px;margin:auto;padding:36px 42px 56px}header{border-top:5px solid var(--accent);padding:28px 0 30px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end}.eyebrow,.label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}h1{font-size:clamp(28px,4vw,48px);letter-spacing:-.035em;line-height:1.17;margin:12px 0 16px;overflow-wrap:anywhere}h2{font-size:21px;line-height:1.4;margin:0 0 18px}h3{margin:0 0 8px;font-size:16px}p{margin:0 0 12px;overflow-wrap:anywhere}.subtitle{color:var(--muted);max-width:800px}.stamp{border:1px solid var(--line);padding:12px 18px;border-radius:10px;color:var(--muted);font-size:12px}.layout{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:22px}.section{grid-column:span 12;background:white;border:1px solid var(--line);border-radius:14px;padding:26px;min-width:0;box-shadow:0 8px 24px #20353603}.section.half{grid-column:span 6}.section.block-kpis{background:transparent;border:0;padding:0;box-shadow:none}.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:16px}.kpi{padding:23px 24px;background:white;border:1px solid var(--line);border-radius:12px;min-width:0}.kpi .value{font-size:32px;font-weight:750;letter-spacing:-.04em;line-height:1.3;margin:10px 0;overflow-wrap:anywhere}.kpi .note{font-size:12px;color:var(--muted)}.kpi:first-child{background:var(--accent);color:white}.kpi:first-child .label,.kpi:first-child .note{color:#ffffffdf}.table-scroll{overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:8px}table{border-collapse:collapse;width:100%;font-size:13px}caption{text-align:left;padding:10px 14px;font-weight:600;color:var(--muted)}th,td{text-align:left;padding:12px 14px;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:90px}th{background:#f4f7f5;color:var(--muted);font-size:12px}tbody tr:nth-child(even){background:#fafcfb}.chart-scroll{overflow-x:auto;max-width:100%}.chart-scroll svg{min-width:560px}svg{width:100%;height:auto;display:block}svg text{font-family:inherit;font-size:11px;fill:#637778}.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--muted);margin:12px 0}.legend span{overflow-wrap:anywhere;min-width:0}.legend i{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:3px}details{border-top:1px solid var(--line);padding-top:12px;margin-top:16px}summary{cursor:pointer;font-size:12px;color:var(--accent);font-weight:650}details[open] summary{margin-bottom:12px}.timeline{list-style:none;margin:0;padding:0}.timeline li{display:grid;grid-template-columns:100px 1fr;gap:20px;padding:0 0 22px}.timeline time{font-size:12px;color:var(--muted)}.timeline article{border-left:2px solid var(--line);padding-left:20px}.timeline p{font-size:14px;color:var(--muted)}.callout{border-left:4px solid var(--accent);background:#f4f7f5;padding:20px}.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:18px}.lane{background:#f4f7f5;padding:16px;border-radius:9px;min-width:0}.card{background:white;padding:16px;border:1px solid var(--line);border-radius:8px;margin-top:12px}.card p{font-size:13px;color:var(--muted)}.badge{font-size:11px;border-radius:4px;padding:3px 7px;background:#e7efeb;color:var(--accent);display:inline-block;overflow-wrap:anywhere;max-width:100%}.prose{max-width:80ch;white-space:pre-line}footer{padding-top:25px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:20px}.research .shell{max-width:1100px}.research h1{font-family:Georgia,"Songti SC",serif}.research .section{border-radius:3px}.research header{padding-bottom:40px}.comparison .section{border-top:3px solid var(--accent)}.operations .shell{max-width:1440px}.project header{border-top-width:2px}h2,h3,.label,.badge{overflow-wrap:anywhere}@media(max-width:760px){.scroll-hint{display:block}.shell{padding:20px 16px 36px}header{grid-template-columns:1fr;gap:8px}.stamp{justify-self:start}.section{padding:20px}.section.half{grid-column:span 12}.timeline li{grid-template-columns:75px 1fr;gap:8px}.layout{gap:16px}.kpi .value{font-size:28px}footer{flex-direction:column;gap:4px}}@media print{.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.kpi{padding:12px}.kpi .value{font-size:22px}.kpi .label{font-size:10px}.chart-scroll svg{max-height:260px}.table-scroll{break-inside:avoid}table{font-size:11px}th,td{padding:8px}.legend{font-size:10px}@page{size:A4;margin:15mm}body{background:white}.shell{max-width:none;padding:0}.layout{display:block}.section{box-shadow:none;break-inside:auto;border-radius:0;margin:0 0 14px;padding:16px}.kpi,.card,.timeline li{break-inside:avoid}.block-kpis,.block-callout{break-inside:avoid}.chart-scroll{break-inside:avoid}.scroll-hint{display:none}h2,h3{break-after:avoid}.section.half{grid-column:span 12}header{padding-top:10px}.table-scroll,.chart-scroll{overflow:visible}.chart-scroll svg{min-width:0}th,td{min-width:0}details{display:none}.print-chart-data{display:block}summary{display:none}footer{position:static}h1{font-size:30px}}
+.print-chart-data,.wide-table-print{display:none}.source-list{list-style:none;padding:0;margin:0}.source-list li{padding:16px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.source-meta{color:var(--muted);font-size:12px}.source-refs{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-top:16px}.source-list a{overflow-wrap:anywhere}:focus-visible{outline:3px solid #c37e23;outline-offset:4px}.empty-state{padding:24px;color:#637778;background:#f4f7f5;text-align:center}.scroll-hint{display:none;font-size:11px;color:#637778}thead{display:table-header-group}tr{break-inside:avoid}
+:root{color-scheme:light;--ink:#203536;--muted:#637778;--paper:#f1f4f2;--line:#dce5e1;--accent:ACCENT}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.65}a{color:var(--accent)}.shell{max-width:1280px;margin:auto;padding:36px 42px 56px}header{border-top:5px solid var(--accent);padding:28px 0 30px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end}.eyebrow,.label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}h1{font-size:clamp(28px,4vw,48px);letter-spacing:-.035em;line-height:1.17;margin:12px 0 16px;overflow-wrap:anywhere}h2{font-size:21px;line-height:1.4;margin:0 0 18px}h3{margin:0 0 8px;font-size:16px}p{margin:0 0 12px;overflow-wrap:anywhere}.subtitle{color:var(--muted);max-width:800px}.stamp{border:1px solid var(--line);padding:12px 18px;border-radius:10px;color:var(--muted);font-size:12px}.layout{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:22px}.section{grid-column:span 12;background:white;border:1px solid var(--line);border-radius:14px;padding:26px;min-width:0;box-shadow:0 8px 24px #20353603}.section.half{grid-column:span 6}.section.block-kpis{background:transparent;border:0;padding:0;box-shadow:none}.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:16px}.kpi{padding:23px 24px;background:white;border:1px solid var(--line);border-radius:12px;min-width:0}.kpi .value{font-size:32px;font-weight:750;letter-spacing:-.04em;line-height:1.3;margin:10px 0;overflow-wrap:anywhere}.kpi .note{font-size:12px;color:var(--muted)}.kpi:first-child{background:var(--accent);color:white}.kpi:first-child .label,.kpi:first-child .note{color:#ffffffdf}.table-scroll{overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:8px}table{border-collapse:collapse;width:100%;font-size:13px}caption{text-align:left;padding:10px 14px;font-weight:600;color:var(--muted)}th,td{text-align:left;padding:12px 14px;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:90px}th{background:#f4f7f5;color:var(--muted);font-size:12px}tbody tr:nth-child(even){background:#fafcfb}.chart-scroll{overflow-x:auto;max-width:100%}.chart-scroll svg{min-width:560px}svg{width:100%;height:auto;display:block}svg text{font-family:inherit;font-size:11px;fill:#637778}.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--muted);margin:12px 0}.legend span{overflow-wrap:anywhere;min-width:0}.legend i{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:3px}details{border-top:1px solid var(--line);padding-top:12px;margin-top:16px}summary{cursor:pointer;font-size:12px;color:var(--accent);font-weight:650}details[open] summary{margin-bottom:12px}.timeline{list-style:none;margin:0;padding:0}.timeline li{display:grid;grid-template-columns:100px 1fr;gap:20px;padding:0 0 22px}.timeline time{font-size:12px;color:var(--muted)}.timeline article{border-left:2px solid var(--line);padding-left:20px}.timeline p{font-size:14px;color:var(--muted)}.callout{border-left:4px solid var(--accent);background:#f4f7f5;padding:20px}.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:18px}.lane{background:#f4f7f5;padding:16px;border-radius:9px;min-width:0}.card{background:white;padding:16px;border:1px solid var(--line);border-radius:8px;margin-top:12px}.card p{font-size:13px;color:var(--muted)}.badge{font-size:11px;border-radius:4px;padding:3px 7px;background:#e7efeb;color:var(--accent);display:inline-block;overflow-wrap:anywhere;max-width:100%}.prose{max-width:80ch;white-space:pre-line}footer{padding-top:25px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:20px}.research .shell{max-width:1100px}.research h1{font-family:Georgia,"Songti SC",serif}.research .section{border-radius:3px}.research header{padding-bottom:40px}.comparison .section{border-top:3px solid var(--accent)}.operations .shell{max-width:1440px}.project header{border-top-width:2px}h2,h3,.label,.badge{overflow-wrap:anywhere}@media(max-width:760px){.scroll-hint{display:block}.shell{padding:20px 16px 36px}header{grid-template-columns:1fr;gap:8px}.stamp{justify-self:start}.section{padding:20px}.section.half{grid-column:span 12}.timeline li{grid-template-columns:75px 1fr;gap:8px}.layout{gap:16px}.kpi .value{font-size:28px}footer{flex-direction:column;gap:4px}}@media print{.wide-table-screen{display:none}.wide-table-print{display:block}.print-record{break-inside:avoid;border-top:1px solid var(--line);padding-top:10px;margin-top:12px}.print-record dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;font-size:10px}.print-record dl>div{min-width:0}.print-record dt{color:var(--muted);font-weight:600}.print-record dd{margin:0;overflow-wrap:anywhere}.source-list li{break-inside:avoid}.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.kpi{padding:12px}.kpi .value{font-size:22px}.kpi .label{font-size:10px}.chart-scroll svg{max-height:260px}.table-scroll{break-inside:avoid}table{font-size:11px}th,td{padding:8px}.legend{font-size:10px}@page{size:A4;margin:15mm}body{background:white}.shell{max-width:none;padding:0}.layout{display:block}.section{box-shadow:none;break-inside:auto;border-radius:0;margin:0 0 14px;padding:16px}.kpi,.card,.timeline li{break-inside:avoid}.block-kpis,.block-callout{break-inside:avoid}.chart-scroll{break-inside:avoid}.scroll-hint{display:none}h2,h3{break-after:avoid}.section.half{grid-column:span 12}header{padding-top:10px}.table-scroll,.chart-scroll{overflow:visible}.chart-scroll svg{min-width:0}th,td{min-width:0}details{display:none}.print-chart-data{display:block}summary{display:none}footer{position:static}h1{font-size:30px}}
 '''
 
 
@@ -182,6 +203,18 @@ def render_html(spec, output):
     sections = seq(spec.get('sections'), 80)
     if not sections:
         raise ValueError('Document requires sections')
+    source_ids = set()
+    for section in sections:
+        validate_section(section)
+        if section['type'] == 'sources':
+            for item in section['items']:
+                if item['id'] in source_ids:
+                    raise ValueError('Duplicate source id')
+                source_ids.add(item['id'])
+    for section in sections:
+        for source_id in seq(section.get('source_ids', []), 30):
+            if not isinstance(source_id, str) or source_id not in source_ids:
+                raise ValueError('Unknown source reference')
     rendered, charts = [], []
     for i, s in enumerate(sections):
         validate_section(s)
@@ -202,6 +235,13 @@ def render_html(spec, output):
             body = '<div class="callout"><p>' + text(s.get('body', '')) + '</p></div>'
         elif kind == 'timeline':
             body = '<ol class="timeline">' + ''.join('<li><time>' + text(e['date'], 100) + '</time><article><h3>' + text(e['title'], 300) + '</h3><p>' + text(e.get('body', '')) + '</p></article></li>' for e in seq(s.get('items'), 100)) + '</ol>'
+        elif kind == 'sources':
+            entries = []
+            for source in s['items']:
+                meta = ' · '.join(text(source[k], 300) for k in ('publisher', 'date') if source.get(k))
+                link = '<p><a rel="noopener noreferrer" href="' + text(source['url']) + '">' + text(source['url']) + '</a></p>' if source.get('url') else ''
+                entries.append('<li id="source-' + source['id'] + '"><h3>[' + source['id'] + '] ' + text(source['title'], 500) + '</h3><p class="source-meta">' + meta + '</p><p>' + text(source.get('note', '')) + '</p>' + link + '</li>')
+            body = '<ol class="source-list">' + ''.join(entries) + '</ol>'
         elif kind == 'board':
             lanes = []
             for lane in seq(s.get('columns'), 6):
@@ -210,6 +250,8 @@ def render_html(spec, output):
             body = '<div class="board">' + ''.join(lanes) + '</div>'
         else:
             raise ValueError('Unsupported section type')
+        if s.get('source_ids'):
+            body += '<nav class="source-refs" aria-label="本节来源">' + ''.join('<a href="#source-' + sid + '">来源 [' + sid + ']</a>' for sid in s['source_ids']) + '</nav>'
         width = s.get('width', 'full')
         if width not in ('full', 'half'):
             raise ValueError('Section width must be full or half')

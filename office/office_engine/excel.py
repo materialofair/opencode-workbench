@@ -3,12 +3,14 @@ from __future__ import annotations
 import copy
 import datetime as dt
 import hashlib
+import io
 import math
 import os
 import posixpath
 import re
 import tempfile
 import zipfile
+import warnings
 from pathlib import Path
 from defusedxml import ElementTree as ET
 import openpyxl
@@ -38,7 +40,31 @@ def _json(v):
     if isinstance(v,(dt.datetime,dt.date,dt.time)): return v.isoformat()
     if isinstance(v,float) and not math.isfinite(v): return str(v)
     if v is None or isinstance(v,(str,int,float,bool)): return v
-    return str(v)
+    return {'unsupported_type':type(v).__name__}
+
+
+def _formula_details(value):
+    if isinstance(value,str): return 'normal', {'type':'normal'}, value
+    kind=getattr(value,'t',None)
+    if kind=='array': return 'array', {'type':'array','ref':getattr(value,'ref',None)}, getattr(value,'text',None)
+    if kind=='dataTable': return 'dataTable', {'type':'dataTable',**{key:_json(getattr(value,key,None)) for key in ('ref','ca','dt2D','dtr','r1','r2','del1','del2')}}, None
+    return 'unsupported', {'type':'unsupported','class':type(value).__name__}, None
+
+
+def _load_book(path, data_only):
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        book=openpyxl.load_workbook(path,data_only=data_only,keep_links=False)
+    notes=[{'category':warning.category.__name__,'message':str(warning.message)[:1000]} for warning in caught[:200]]
+    if len(caught)>200: notes.append({'category':'Truncation','message':'Library warnings truncated after 200 entries'})
+    return book,notes
+
+
+def _rich_text(node):
+    if node is None: return ''
+    paragraphs=node.findall('.//a:p',NS)
+    if paragraphs: return '\n'.join(''.join(run.text or '' for run in paragraph.findall('.//a:t',NS)) for paragraph in paragraphs)
+    return ''.join(run.text or '' for run in node.findall('.//a:t',NS))
 
 
 def _text(v, name='text', limit=32767):
@@ -47,12 +73,14 @@ def _text(v, name='text', limit=32767):
     return v
 
 
-def _archive(path):
+def _archive(path, data=None):
     p=Path(path)
     if p.suffix.lower() not in ('.xlsx','.xlsm','.xltx','.xltm'):
         raise ValueError('Only OOXML XLSX/XLSM/XLTX/XLTM inspection is supported; XLS/XLSB require an explicit separate converter')
-    if not p.is_file() or p.stat().st_size>MAX_FILE: raise ValueError('Workbook missing or exceeds 64 MiB')
-    z=zipfile.ZipFile(p)
+    if data is None:
+        if not p.is_file() or p.stat().st_size>MAX_FILE: raise ValueError('Workbook missing or exceeds 64 MiB')
+    elif len(data)>MAX_FILE: raise ValueError('Workbook exceeds 64 MiB')
+    z=zipfile.ZipFile(p if data is None else io.BytesIO(data))
     try:
         infos=z.infolist()
         if len(infos)>MAX_MEMBERS or sum(i.file_size for i in infos)>MAX_UNPACKED: raise ValueError('Archive exceeds resource budget')
@@ -78,7 +106,7 @@ def _archive(path):
                         if node_count>MAX_XML_NODES: raise ValueError('Workbook exceeds XML node budget')
                         if not stack:
                             part_kind=local
-                            if part_kind=='worksheet':
+                            if part_kind in ('worksheet','chartsheet'):
                                 sheet_count+=1
                                 if sheet_count>100: raise ValueError('Workbook exceeds 100 sheets')
                         if len(node.attrib)>100 or any(len(v)>MAX_XML_ATTRIBUTE for v in node.attrib.values()): raise ValueError('Workbook exceeds XML attribute budget')
@@ -162,7 +190,7 @@ def _charts(z, names):
         axes=[]
         for kind in ('catAx','valAx','dateAx','serAx'):
             for ax in root.findall('.//c:'+kind,NS):
-                entry={'type':kind,'id':ax.find('c:axId',NS).get('val') if ax.find('c:axId',NS) is not None else None,'title':' '.join(x.text or '' for x in ax.findall('.//a:t',NS)),**_attributes(ax,['crossAx','axPos','numFmt','crosses','crossesAt','majorUnit','minorUnit','baseTimeUnit','majorTimeUnit','minorTimeUnit','delete'])}
+                entry={'type':kind,'id':ax.find('c:axId',NS).get('val') if ax.find('c:axId',NS) is not None else None,'title':_rich_text(ax.find('c:title',NS)),**_attributes(ax,['crossAx','axPos','numFmt','crosses','crossesAt','majorUnit','minorUnit','baseTimeUnit','majorTimeUnit','minorTimeUnit','delete'])}
                 scaling=ax.find('c:scaling',NS)
                 if scaling is not None: entry['scaling']=_attributes(scaling,['min','max','orientation','logBase'])
                 axes.append(entry)
@@ -172,7 +200,7 @@ def _charts(z, names):
         title_data=_chart_role(title)
         chart_node=root.find('c:chart',NS)
         visibility=_attributes(chart_node,['plotVisOnly','dispBlanksAs','showDLblsOverMax']) if chart_node is not None else {}
-        result.append({'part':name,'title':' '.join(x.text or '' for x in title.findall('.//a:t',NS)) if title is not None else '', 'title_data':title_data,'visibility':visibility,'plots':plots,'axes':axes,'warnings':warnings})
+        result.append({'part':name,'title':_rich_text(title), 'title_data':title_data,'visibility':visibility,'plots':plots,'axes':axes,'warnings':warnings})
     return result
 
 
@@ -258,7 +286,14 @@ def inspect_workbook(path, options=None):
     char_limit=_int(options.get('max_cell_chars',1000),1,32767,'max_cell_chars')
     selection=options.get('sheets')
     if selection is not None and (not isinstance(selection,list) or not selection or len(selection)>100 or any(not isinstance(x,str) for x in selection) or len(set(selection))!=len(selection)): raise ValueError('sheets must be a nonempty list of distinct exact sheet names')
-    z,names=_archive(path)
+    if Path(path).suffix.lower() not in ('.xlsx','.xlsm','.xltx','.xltm'): raise ValueError('Only OOXML XLSX/XLSM/XLTX/XLTM inspection is supported; XLS/XLSB require an explicit separate converter')
+    if not Path(path).is_file() or Path(path).stat().st_size>MAX_FILE: raise ValueError('Workbook missing or exceeds 64 MiB')
+    with open(path,'rb') as source_file:
+        before=os.fstat(source_file.fileno())
+        source_bytes=source_file.read(MAX_FILE+1)
+        after=os.fstat(source_file.fileno())
+    if (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns): raise ValueError('Source changed while taking workbook snapshot; retry after editing stops')
+    z,names=_archive(path,source_bytes)
     try:
         feature_prefixes={'charts':'xl/charts/','drawings':'xl/drawings/','pivot_tables':'xl/pivotTables/','pivot_caches':'xl/pivotCache/','external_links':'xl/externalLinks/','embeddings':'xl/embeddings/','slicers':'xl/slicers/','connections':'xl/connections'}
         features={k:[n for n in names if n.startswith(v) and not n.endswith('/')] for k,v in feature_prefixes.items()}
@@ -270,14 +305,21 @@ def inspect_workbook(path, options=None):
                     if rel.get('TargetMode')=='External': external.append({'part':n,'type':rel.get('Type'),'target':rel.get('Target'),'risk':'external_resource_not_fetched'})
         charts=_charts(z,names); drawings=_drawing_map(z,set(names))
     finally: z.close()
-    wb=openpyxl.load_workbook(path,data_only=False,keep_links=False)
+    wb,library_warnings=_load_book(io.BytesIO(source_bytes),False)
     cached=None
     sheets=[]; missing=0; sampled=0; remaining_chars=2_000_000
     try:
         if selection is not None and any(name not in wb.sheetnames for name in selection): raise ValueError('Unknown sheet selection: '+', '.join(name for name in selection if name not in wb.sheetnames))
-        cached=openpyxl.load_workbook(path,data_only=True,keep_links=False)
-        for ws in wb.worksheets:
+        cached,cache_warnings=_load_book(io.BytesIO(source_bytes),True)
+        for warning in cache_warnings:
+            if warning not in library_warnings: library_warnings.append(warning)
+        for name in wb.sheetnames:
+            ws=wb[name]
             if selection is not None and ws.title not in selection: continue
+            if isinstance(ws,openpyxl.chartsheet.Chartsheet):
+                info=drawings.get(ws.title,{'objects':[],'warnings':[]})
+                sheets.append({'name':ws.title,'kind':'chartsheet','state':ws.sheet_state,'dimensions':None,'cells':[],'formulas':[],'requested_window':None,'sampled_range':None,'window_complete':True,'truncated':False,'truncation_reasons':[],'chart_parts':[o['part'] for o in info['objects'] if o['kind']=='chart' and o['part']],'drawing_objects':info['objects'],'drawing_warnings':info['warnings'],'note':'Chart-only sheet has no worksheet cell grid'})
+                continue
             vals=[]; formulas=[]; spans=[]; sheet_sampled=0
             end_row=min(ws.max_row,start_row+max_rows-1,1048576); end_col=min(ws.max_column,start_col+max_cols-1,16384)
             window_count=max(0,end_row-start_row+1)*max(0,end_col-start_col+1)
@@ -289,15 +331,17 @@ def inspect_workbook(path, options=None):
                         sampled+=1; sheet_sampled+=1
                         row_first=row_first or c.coordinate; row_last=c.coordinate
                         if c.value is None: continue
-                        value=_json(c.value); clipped=False
+                        formula_type,formula_metadata,expression=_formula_details(c.value) if c.data_type=='f' else (None,None,None)
+                        value=expression if c.data_type=='f' else _json(c.value); clipped=False
                         if isinstance(value,str):
                             limit=min(char_limit,remaining_chars); clipped=len(value)>limit; value=value[:limit]; remaining_chars-=len(value)
                         item={'cell':c.coordinate,'value':value,'type':c.data_type,'format':c.number_format,'text_truncated':clipped}
                         if c.data_type=='f':
                             cv=_json(cached[ws.title][c.coordinate].value)
                             if isinstance(cv,str): cv=cv[:min(char_limit,remaining_chars)]; remaining_chars-=len(cv)
+                            item['formula_type']=formula_type; item['formula_metadata']=formula_metadata
                             item['cached_value']=cv; item['cache_status']='missing' if cv is None else 'unverified'
-                            formulas.append({'cell':c.coordinate,'formula':value,'cached_value':cv,'cache_status':item['cache_status'],'text_truncated':clipped})
+                            formulas.append({'cell':c.coordinate,'formula':value,'formula_type':formula_type,'formula_metadata':formula_metadata,'cached_value':cv,'cache_status':item['cache_status'],'text_truncated':clipped})
                             missing+=int(cv is None)
                         vals.append(item)
                     if row_first: spans.append(row_first+':'+row_last)
@@ -310,14 +354,14 @@ def inspect_workbook(path, options=None):
             if any(c['text_truncated'] for c in vals): reasons.append('cell_text_truncated')
             drawing_info=drawings.get(ws.title,{'part':None,'objects':[],'warnings':[]})
             chart_parts=[o['part'] for o in drawing_info['objects'] if o['kind']=='chart' and o['part']]
-            sheets.append({'name':ws.title,'state':ws.sheet_state,'dimensions':{'rows':ws.max_row,'columns':ws.max_column},'requested_window':{'start_row':start_row,'start_col':start_col,'max_rows':max_rows,'max_cols':max_cols,'coordinate_base':1},'sampled_range':{'first_cell':spans[0].split(':')[0] if spans else None,'last_cell':spans[-1].split(':')[-1] if spans else None,'cell_count':sheet_sampled,'row_spans':spans},'window_complete':window_count==sheet_sampled,'merged_ranges':[str(r) for r in ws.merged_cells.ranges], 'tables':[{'name':t.name,'ref':t.ref} for t in ws.tables.values()], 'freeze_panes':str(ws.freeze_panes) if ws.freeze_panes else None,'autofilter':ws.auto_filter.ref,'cells':vals,'formulas':formulas,'truncated':bool(reasons),'truncation_reasons':reasons,'chart_parts':chart_parts,'drawing_objects':drawing_info['objects'],'drawing_warnings':drawing_info['warnings'],**_sheet_metadata(ws)})
+            sheets.append({'name':ws.title,'kind':'worksheet','state':ws.sheet_state,'dimensions':{'rows':ws.max_row,'columns':ws.max_column},'requested_window':{'start_row':start_row,'start_col':start_col,'max_rows':max_rows,'max_cols':max_cols,'coordinate_base':1},'sampled_range':{'first_cell':spans[0].split(':')[0] if spans else None,'last_cell':spans[-1].split(':')[-1] if spans else None,'cell_count':sheet_sampled,'row_spans':spans},'window_complete':window_count==sheet_sampled,'merged_ranges':[str(r) for r in ws.merged_cells.ranges], 'tables':[{'name':t.name,'ref':t.ref} for t in ws.tables.values()], 'freeze_panes':str(ws.freeze_panes) if ws.freeze_panes else None,'autofilter':ws.auto_filter.ref,'cells':vals,'formulas':formulas,'truncated':bool(reasons),'truncation_reasons':reasons,'chart_parts':chart_parts,'drawing_objects':drawing_info['objects'],'drawing_warnings':drawing_info['warnings'],**_sheet_metadata(ws)})
         defined=[{'name':n.name,'value':n.attr_text,'scope':n.localSheetId} for n in wb.defined_names.values()]
         for ws in wb.worksheets:
             if selection is None or ws.title in selection: defined.extend({'name':n.name,'value':n.attr_text,'sheet':ws.title} for n in ws.defined_names.values())
         for chart in charts:
             chart['sheets']=[name for name,info in drawings.items() if any(o['part']==chart['part'] and o['kind']=='chart' for o in info['objects'])]
         if selection is not None: charts=[c for c in charts if set(c['sheets'])&set(selection)]
-        return {'schema_version':1,'operation':'inspect','resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(Path(path).read_bytes()).hexdigest(),'available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
+        return {'schema_version':1,'operation':'inspect','resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(source_bytes).hexdigest(),'source_consistency':'single immutable byte snapshot; later concurrent edits are not reflected','available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'library_warnings':library_warnings,'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':(['Parser reported unsupported or unparsed features; inspect library_warnings. Original source was not modified.'] if library_warnings else [])+['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
     finally:
         wb.close()
         if cached is not None: cached.close()

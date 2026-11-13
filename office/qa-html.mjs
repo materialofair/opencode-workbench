@@ -23,7 +23,8 @@ try {
       horizontal_overflow:document.documentElement.scrollWidth>innerWidth+1,
       clipped_text:[...document.querySelectorAll('h1,h2,h3,p,.label,.value,.note,.badge,summary')].filter(el=>{const s=getComputedStyle(el);return ['hidden','clip'].includes(s.overflowX)&&el.scrollWidth>el.clientWidth+1 || ['hidden','clip'].includes(s.overflowY)&&el.scrollHeight>el.clientHeight+1;}).map(el=>el.textContent.slice(0,160)),
       svg_count:document.querySelectorAll('svg').length,
-      external_assets:[...document.querySelectorAll('[src],[href]')].map(e=>e.getAttribute('src')||e.getAttribute('href')).filter(x=>/^(https?:|\/\/)/i.test(x)),
+      external_assets:[...document.querySelectorAll('[src],link[href]')].map(e=>e.getAttribute('src')||e.getAttribute('href')).filter(x=>/^(https?:|\/\/)/i.test(x)),
+      allowed_source_links:[...document.querySelectorAll('.source-list a[href]')].map(e=>e.href),
       missing_table_captions:[...document.querySelectorAll('table')].filter(e=>!e.caption).length,
       duplicate_ids:[...document.querySelectorAll('[id]')].map(e=>e.id).filter((id,i,ids)=>ids.indexOf(id)!==i),
       scroll_regions:[...document.querySelectorAll('.chart-scroll,.table-scroll')].filter(e=>e.scrollWidth>e.clientWidth+1).length,
@@ -34,6 +35,14 @@ try {
       await details.nth(i).locator('summary').focus();
       await page.keyboard.press('Enter');
       if (!await details.nth(i).getAttribute('open').then(x=>x!==null)) throw new Error('Details did not open');
+      const data=details.nth(i).locator('.table-scroll');
+      if(!await data.isVisible())throw new Error('Expanded chart data not visible');
+      if(await data.evaluate(e=>e.scrollWidth>e.clientWidth+1)){
+        await data.focus();await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(e=>e.scrollLeft>0,await data.elementHandle(),{timeout:2000});
+        const accessible=await data.evaluate(e=>{e.scrollLeft=e.scrollWidth;return Math.abs(e.scrollWidth-e.clientWidth-e.scrollLeft)<2;});
+        if(!accessible)throw new Error('Expanded chart data end unreachable');
+      }
       await details.nth(i).locator('summary').focus();
       await page.keyboard.press('Enter');
       if (await details.nth(i).getAttribute('open')!==null) throw new Error('Details did not close');
