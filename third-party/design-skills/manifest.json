@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "purpose": "Pinned offline design references; no upstream install scripts or network engines executed",
+  "sources": [
+    {
+      "repository": "anthropics/skills",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "files": [
+        {
+          "upstream_path": "skills/frontend-design/SKILL.md",
+          "local_path": "third-party/design-skills/anthropic-frontend-design/SKILL.md",
+          "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3",
+          "bytes": 9390
+        },
+        {
+          "upstream_path": "skills/frontend-design/LICENSE.txt",
+          "local_path": "third-party/design-skills/anthropic-frontend-design/LICENSE.txt",
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+          "bytes": 10174
+        }
+      ]
+    },
+    {
+      "repository": "vercel-labs/web-interface-guidelines",
+      "commit": "434b7f91364665f2f733b310ec54809bf8f37937",
+      "files": [
+        {
+          "upstream_path": "command.md",
+          "local_path": "third-party/design-skills/vercel-web-interface/command.md",
+          "sha256": "d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234",
+          "bytes": 8055
+        },
+        {
+          "upstream_path": "LICENSE",
+          "local_path": "third-party/design-skills/vercel-web-interface/LICENSE",
+          "sha256": "6cd1609c9c12233507cdd2ce0d32e9a721e3c27494951be06b90090deeeb7af2",
+          "bytes": 1068
+        }
+      ]
+    },
+    {
+      "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "commit": "6ae86f61f520d6ca229d2f40e070410638c908c5",
+      "files": [
+        {
+          "upstream_path": "LICENSE",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/LICENSE",
+          "sha256": "738f69dfa83db5c347c678fb9d90e560877059f0de93a327c39001bff92dc014",
+          "bytes": 1075
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/app-interface.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/app-interface.csv",
+          "sha256": "331e7cf2c0b222d80c566c5f255c63cb339f65bfd02e471a720f28e4864a9f08",
+          "bytes": 11046
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/catalog-summary.json",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/catalog-summary.json",
+          "sha256": "b27655fbce8fec64b7ab7ec6ac11f079a0e6ab29a5c2785d624cedc96dd0742f",
+          "bytes": 2392
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/charts.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/charts.csv",
+          "sha256": "4115cf1120680f2cedef0676cb648f30c7ef4699e2a947535d4113e71ed3b12a",
+          "bytes": 23365
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/colors.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/colors.csv",
+          "sha256": "8162429222bce22df62b564085946a30d07cc9722c58d0a3a494bd0d1d00841c",
+          "bytes": 37940
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/data-provenance.json",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/data-provenance.json",
+          "sha256": "e29a3aab8d8418a23f67e00a8e8f3064afe4eea1183540ec4af374ec6f4fc938",
+          "bytes": 38203
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/google-font-licenses.json",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/google-font-licenses.json",
+          "sha256": "35688523f2955795caa1a47c53b83099e60c1708461476f9cc3a050cf3b0148a",
+          "bytes": 433127
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/landing.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/landing.csv",
+          "sha256": "9a2edd3bb676c2a58f00ade7a062e285222d4297bfd847c8d5b056f0dbbf52d0",
+          "bytes": 25449
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/phosphor-icons-upstream.json",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/phosphor-icons-upstream.json",
+          "sha256": "2399325233b277b5c97a80e6a5e8941154f5d057beee4e7613db87c87d700236",
+          "bytes": 823933
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/products.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/products.csv",
+          "sha256": "5756125e2b0e0d2360926f175d0975c8cd846c7589e5e2ce02631ff645e66361",
+          "bytes": 76959
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/styles.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/styles.csv",
+          "sha256": "a9b6cadbd1cb9e7cb8398a3b445e0691d01e42ed5e5efa60a5d0c08c99c8100d",
+          "bytes": 152958
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/typography.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/typography.csv",
+          "sha256": "321fc446e89024488ebae96dda93efc4d2307bd8bddb240857ad51364f6782c8",
+          "bytes": 49997
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/ux-guidelines.csv",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/data/ux-guidelines.csv",
+          "sha256": "d63dc39439cf615cdccfdf7acd2301e0c3ce5e1e56a89b60617fa190f7511512",
+          "bytes": 28310
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/scripts/core.py",
+          "local_path": "third-party/design-skills/ui-ux-pro-max/scripts/core.py",
+          "sha256": "caf92bdcf2579c9a7d6af4f53c54ee9d3c8f05472cfab77aaec38bef120ec63e",
+          "bytes": 43933
+        }
+      ],
+      "excluded_source_files": [
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/google-fonts.csv",
+          "sha256": "1c8c3b2ea1faf6a1012da463756def8b3889db33f2226f0343bb4daa80307d03",
+          "bytes": 747241
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/icons.csv",
+          "sha256": "50816c6012030178195a16ee481ebf58b47bd985d70e8ec58886cc83f6eddafc",
+          "bytes": 57945
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/motion.csv",
+          "sha256": "381affe8df8ea1f66fbbda2598827f9f54299107bbe6a1b4e9b68f6b62091ceb",
+          "bytes": 14679
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/react-performance.csv",
+          "sha256": "3d925802539abac5afeb63ae8aa1960b7229ad271b3a47caed40ab2d97ad0734",
+          "bytes": 15080
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/angular.csv",
+          "sha256": "704be83f2bad30c7e6de01afb113ffa01e0c458762f48b7102f31ba2367b5553",
+          "bytes": 19863
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/astro.csv",
+          "sha256": "2c2f55fadaafc05e04cc321c8194a1a28b656e6757fe2ba316f41b16428299c6",
+          "bytes": 14591
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/avalonia.csv",
+          "sha256": "442fca14675a020683473e7e49f08abb27b9df0765c80efe54aef61f1a4ac258",
+          "bytes": 27327
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/flutter.csv",
+          "sha256": "64dba0ac17349f28bce517a0f5f48c54d9ed2e487ec0c0258303463b382f41a0",
+          "bytes": 14192
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/html-tailwind.csv",
+          "sha256": "d05a581d20af57b8ca0104a6d31d90a07c437d500662a96c3029fc2f9a4678ee",
+          "bytes": 16551
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/javafx.csv",
+          "sha256": "2e819b8d5abdd23ad4dae0991650fdb57af497aabd68b37463aa9c442944c869",
+          "bytes": 33577
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/jetpack-compose.csv",
+          "sha256": "699de218b286948eaec7d15767b6e1350ee299167e49bf476d82e3ff58724e0a",
+          "bytes": 12295
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/laravel.csv",
+          "sha256": "854ea4daa5fc61292d22235ad33b49ba3fe22423c3de8d3cb03758ffed3b59f9",
+          "bytes": 20163
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/nextjs.csv",
+          "sha256": "ecd2c27b2ea0127d203ae726060efcdd7335b5e83f96b99e4f3befbbfeebd5a4",
+          "bytes": 18687
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/nuxt-ui.csv",
+          "sha256": "9c0179d559abe39ad63b958b54cb29c82be1dd20706430476096ea8967bfa328",
+          "bytes": 32292
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/nuxtjs.csv",
+          "sha256": "3d9b54ed2d151bd9c86e9e5609b8a6f88a00c4c52fa601a30af96c49b2c4d176",
+          "bytes": 23014
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/react-native.csv",
+          "sha256": "ba31dd9c0c04da6bc02a74448bf121f9c0728ae5ba3b4d47b487778b0a1135b5",
+          "bytes": 14049
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/react.csv",
+          "sha256": "4dd176a9787e5c6306b5df94158d75955adcdc6edab41ce5286641a5842303c1",
+          "bytes": 21166
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/shadcn.csv",
+          "sha256": "e56cfde5b74907836ac3582a4779d5b7f3d206a702ab81b8669a1b668c3eeb51",
+          "bytes": 23184
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/svelte.csv",
+          "sha256": "f6e379ba802941ba26b01d4ffbe3cd39120f2587659a1d93851c707f66bc13db",
+          "bytes": 15078
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/swiftui.csv",
+          "sha256": "bdd9231ff3ad658f4e7c063e1eb49df2fd09ac8d90631a86df899b39833b9623",
+          "bytes": 15323
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/threejs.csv",
+          "sha256": "155d583b9c64da0df4b6c6cb060c02eab222505e0734d6353da02c9e2b5d982b",
+          "bytes": 46769
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/uno.csv",
+          "sha256": "a0474363e4225b5367214d5675fd3e075f137026f9500f0d04357882ef4f6d48",
+          "bytes": 30091
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/uwp.csv",
+          "sha256": "c409f08c1fbba1f1029f1acaa554e7b4471cc85517a5751c9f2e62465badcd5c",
+          "bytes": 24692
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/vue.csv",
+          "sha256": "b655f1ebb9dff2652d15981f31b1784c8a6d4759efd2815a14f3088257569f95",
+          "bytes": 12813
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/winui.csv",
+          "sha256": "e676dc1c13ee6c205c40b0746f1335150a346c7a49a0616d2545bc3d2c930c85",
+          "bytes": 27890
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/stacks/wpf.csv",
+          "sha256": "9781a9950b20333637b30a02e498b7efca21b618a3eeb8665836f3ac6e974da7",
+          "bytes": 24158
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/data/ui-reasoning.csv",
+          "sha256": "f0774dd741cecdad5eec842034bd6d5e9ea50e9f220a1910069748daa0bb8e9a",
+          "bytes": 77360
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/scripts/design_system.py",
+          "sha256": "e7d1c94c4b2eada17c5551157668362659ccf9626d34dbd58e68142410f90103",
+          "bytes": 71537
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/scripts/reasoning_contract.py",
+          "sha256": "b8bac1af82aa280d3e06f00aabaeac4337e632996b07fed874e2b6ee6e9c5913",
+          "bytes": 5824
+        },
+        {
+          "upstream_path": "src/ui-ux-pro-max/scripts/search.py",
+          "sha256": "9fd5acc991142fd43c3afe7be0f6720911b668f3988b34e74b5cbc41d58e7947",
+          "bytes": 10642
+        }
+      ],
+      "scope": "Minimal runtime closure: core.py, eight allowed design domains, provenance metadata and MIT license. Other stacks and upstream CLI are not installed."
+    }
+  ]
+}

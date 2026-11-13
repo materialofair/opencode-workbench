@@ -2,8 +2,10 @@
 from __future__ import annotations
 import copy
 import datetime as dt
+from decimal import Decimal, InvalidOperation
 import hashlib
 import io
+import json
 import math
 import os
 import posixpath
@@ -144,15 +146,32 @@ def _archive(path, data=None):
         z.close(); raise
 
 
+def _cache_points(cache):
+    points=cache.findall('c:pt',NS); declared=cache.find('c:ptCount',NS)
+    declared_value=declared.get('val','') if declared is not None else ''
+    count=int(declared_value) if declared_value.isdigit() else None
+    result=[]; indexes=set()
+    for point in points[:200]:
+        idx=point.get('idx',''); index=int(idx) if idx.isdigit() else None
+        value=point.find('c:v',NS)
+        text=value.text if value is not None else None
+        if index is not None: indexes.add(index)
+        result.append({'index':idx,'point_index':index,'value':(text or '')[:1000],'text_truncated':len(text or '')>1000,'value_state':'missing_value_element' if value is None else 'empty' if text is None or text=='' else 'present'})
+    return {'declared_point_count':count,'stored_point_count':len(points),'points':result,'missing_indices_in_first_200':[i for i in range(min(count or 0,200)) if i not in indexes],'truncated':len(points)>200,'gap_note':'Missing point indices are absent cached data, not zero. Empty value text is distinct from an absent point.'}
+
+
 def _chart_role(node):
     if node is None: return None
-    caches=[]
+    caches=[]; levels=[]
     for cache in node.iter():
         kind=cache.tag.split('}')[-1]
+        if kind=='multiLvlStrCache':
+            count=cache.find('c:ptCount',NS)
+            levels.append({'kind':kind,'declared_point_count':count.get('val') if count is not None else None,'level_order':'OOXML stored order; no inferred hierarchy reversal','levels':[{'level_index':i,**_cache_points(level)} for i,level in enumerate(cache.findall('c:lvl',NS)[:20])],'levels_truncated':len(cache.findall('c:lvl',NS))>20})
         if kind not in ('numCache','strCache','numLit','strLit'): continue
-        points=cache.findall('c:pt',NS)
-        caches.append({'kind':kind,'format_code':cache.findtext('c:formatCode',default=None,namespaces=NS),'points':[{'index':p.get('idx'),'value':p.findtext('c:v',default='',namespaces=NS)[:1000]} for p in points[:200]],'truncated':len(points)>200})
-    return {'references':[(x.text or '')[:8192] for x in node.findall('.//c:f',NS)[:20]],'caches':caches,'literal_text':[(x.text or '')[:1000] for x in node.findall('c:v',NS)]}
+        caches.append({'kind':kind,'format_code':cache.findtext('c:formatCode',default=None,namespaces=NS),'reliability':'embedded_literal' if kind.endswith('Lit') else 'stored_cache_unverified',**_cache_points(cache)})
+    refs=[(x.text or '')[:8192] for x in node.findall('.//c:f',NS)[:20]]
+    return {'references':refs,'caches':caches,'multi_level_caches':levels,'literal_text':[(x.text or '')[:1000] for x in node.findall('c:v',NS)],'cache_status':'stored_unverified' if any(c['kind'].endswith('Cache') for c in caches) or levels else 'embedded_literal' if caches else 'missing' if refs else 'not_applicable','reliability_note':'No recalculation or refresh performed. Cache agreement with saved cells is not proof of freshness.'}
 
 
 def _attributes(node, names):
@@ -275,9 +294,120 @@ def _sheet_metadata(ws):
     return {'data_validations':dv,'data_validations_truncated':len(validations)>200,'conditional_formats':cf,'conditional_formats_truncated':count>200}
 
 
+def _source_reference(reference, wb):
+    # Only explicit local A1 references. Names, unions, functions and external workbooks remain unresolved.
+    text=reference[1:] if reference.startswith('=') else reference
+    if '[' in text or ']' in text or '://' in text: return {'reference':reference,'status':'external_reference_not_fetched'}
+    match=re.fullmatch(r"(?:'((?:[^']|'')+)'|([^'!]+))!([A-Za-z]{1,3}\$?[1-9][0-9]*|\$[A-Za-z]{1,3}\$?[1-9][0-9]*)(?::(\$?[A-Za-z]{1,3}\$?[1-9][0-9]*))?",text)
+    if not match: return {'reference':reference,'status':'unsupported_reference_expression','note':'Only explicit local A1 ranges are resolved; named ranges, unions and formulas are not evaluated.'}
+    name=(match.group(1) or match.group(2)).replace("''", "'")
+    if name not in wb.sheetnames or isinstance(wb[name],openpyxl.chartsheet.Chartsheet): return {'reference':reference,'status':'missing_local_worksheet','sheet':name}
+    try: c1,r1,c2,r2=openpyxl.utils.cell.range_boundaries(match.group(3)+(':'+match.group(4) if match.group(4) else ''))
+    except ValueError: return {'reference':reference,'status':'invalid_range'}
+    if not 1<=r1<=r2<=1048576 or not 1<=c1<=c2<=16384: return {'reference':reference,'status':'invalid_range'}
+    return {'reference':reference,'status':'local_range','sheet':name,'range':openpyxl.utils.cell.get_column_letter(c1)+str(r1)+':'+openpyxl.utils.cell.get_column_letter(c2)+str(r2),'bounds':[r1,c1,r2,c2],'point_mapping':'row_major_one_dimensional' if r1==r2 or c1==c2 else 'two_dimensional_no_chart_point_mapping','total_cells':(r2-r1+1)*(c2-c1+1)}
+
+
+def _resolve_chart_sources(charts, wb, cached, source_hash):
+    remaining=2000; sampled=0
+    for chart in charts:
+        roles=[chart.get('title_data')]
+        for plot in chart['plots']:
+            for ser in plot['series']: roles.extend(ser.get(key) for key in ('name','categories','values','x_values','y_values','bubble_size'))
+        for role in roles:
+            if not role: continue
+            role['sources']=[]
+            cache=next((c for c in role['caches'] if c['kind'] in ('numCache','strCache')),None)
+            cache_points={p['point_index']:p for p in cache['points'] if p['point_index'] is not None} if cache else {}
+            for reference in role['references']:
+                source=_source_reference(reference,wb); role['sources'].append(source)
+                if source['status']!='local_range': continue
+                r1,c1,r2,c2=source['bounds']; ws=wb[source['sheet']]; saved=cached[source['sheet']]
+                points=[]; limit=min(100,remaining,source['total_cells']); one_d=source['point_mapping']=='row_major_one_dimensional'
+                for index in range(limit):
+                    r=r1+index//(c2-c1+1); c=c1+index%(c2-c1+1)
+                    cell=ws.cell(r,c); value=cell.value; formula=None; reliability='stored_cell_value'
+                    if cell.data_type=='f':
+                        _,_,formula=_formula_details(value); value=saved.cell(r,c).value; reliability='formula_cache_missing' if value is None else 'formula_cache_unverified'
+                    rendered=_json(value)
+                    value_truncated=isinstance(rendered,str) and len(rendered)>1000
+                    formula_truncated=isinstance(formula,str) and len(formula)>1000
+                    if isinstance(rendered,str): rendered=rendered[:1000]
+                    point={'point_index':index if one_d else None,'cell':cell.coordinate,'value':rendered,'formula':formula[:1000] if isinstance(formula,str) else formula,'text_truncated':value_truncated,'formula_truncated':formula_truncated,'comparison_basis':'Complete saved source value; display may be truncated. Comparison skipped when chart cache text is truncated.','source_reliability':reliability,'blank':value is None,'chart_cache_comparison':'not_comparable_2d_reference' if not one_d else 'no_chart_cache_point'}
+                    cp=cache_points.get(index) if one_d else None
+                    if cp is not None:
+                        point['chart_cached_value']=cp['value']; point['chart_cache_value_state']=cp['value_state']; point['chart_cached_value_truncated']=cp['text_truncated']
+                        if cp['text_truncated']: point['chart_cache_comparison']='not_comparable_truncated_cache'
+                        elif reliability=='formula_cache_missing': point['chart_cache_comparison']='not_comparable_missing_formula_cache'
+                        elif cp['value_state']!='present' or value is None: point['chart_cache_comparison']='empty_or_blank_requires_review'
+                        else:
+                            compare_value=value
+                            if isinstance(value,dt.time):
+                                compare_value=openpyxl.utils.datetime.time_to_days(value)
+                                point['comparison_representation']='Excel fraction-of-day time; displayed value remains ISO'
+                            elif isinstance(value,dt.timedelta):
+                                compare_value=openpyxl.utils.datetime.timedelta_to_days(value)
+                                point['comparison_representation']='Excel days duration'
+                            elif isinstance(value,(dt.datetime,dt.date)):
+                                compare_value=openpyxl.utils.datetime.to_excel(value,wb.epoch)
+                                point['comparison_representation']='Excel serial date using workbook epoch; displayed value remains ISO'
+                            if isinstance(value,bool):
+                                point['chart_cache_comparison']='not_comparable_boolean_coercion'
+                                points.append(point); continue
+                            if cache['kind']=='numCache' and isinstance(compare_value,(float,int)) and not isinstance(compare_value,bool):
+                                try: equal=Decimal(cp['value'])==Decimal(str(compare_value))
+                                except InvalidOperation: equal=False
+                            else: equal=str(compare_value)==cp['value']
+                            point['chart_cache_comparison']='equal_stored_values_not_freshness_proof' if equal else 'serial_roundtrip_difference_requires_review' if isinstance(value,(dt.datetime,dt.date,dt.time,dt.timedelta)) else 'different_stored_values'
+                    points.append(point)
+                remaining-=limit; sampled+=limit
+                source['points']=points; source['sampled_cells']=limit; source['truncated']=limit<source['total_cells']
+                source['read_options']={'sheets':[source['sheet']],'start_row':r1,'start_col':c1,'max_rows':min(2000,r2-r1+1),'max_cols':min(200,c2-c1+1),'max_cells':min(MAX_CELLS,source['total_cells'])}
+                source['read_options']['expected_source_sha256']=source_hash
+                source['read_request']={'same_input_file':True,'expected_source_sha256':source_hash,'options':source['read_options'],'request_id':hashlib.sha256(json.dumps({'source_sha256':source_hash,'options':source['read_options']},sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]}
+                source['reliability_note']='Saved source cells and saved chart cache only; formulas are never evaluated.'
+    return {'sampled_cells':sampled,'max_cells':2000,'max_cells_per_reference':100,'remaining_cells':remaining,'scope':'additional chart-source reads outside worksheet output sample; same workbook snapshot'}
+
+
+def _chart_task_summary(chart):
+    comparisons={}; reference_statuses={}; review=[]
+    roles=[chart.get('title_data')]
+    for plot in chart['plots']:
+        for ser in plot['series']: roles.extend(ser.get(key) for key in ('name','categories','values','x_values','y_values','bubble_size'))
+    for role in roles:
+        if not role: continue
+        for source in role.get('sources',[]):
+            status=source['status']; reference_statuses[status]=reference_statuses.get(status,0)+1
+            for point in source.get('points',[]):
+                comparison=point['chart_cache_comparison']; comparisons[comparison]=comparisons.get(comparison,0)+1
+                if comparison=='different_stored_values' and len(review)<50: review.append({'sheet':source['sheet'],'cell':point['cell'],'saved_cell_value':point['value'],'saved_chart_cache':point.get('chart_cached_value')})
+    mismatches=comparisons.get('different_stored_values',0)
+    return {'reference_status_counts':reference_statuses,'sampled_comparison_counts':comparisons,'saved_value_disagreements':mismatches,'disagreement_examples':review,'text':f"{mismatches} sampled saved chart/source disagreements. Matching saved values do not prove freshness; unresolved or unsampled sources remain unknown."}
+
+
+def _navigation(sheet, max_rows, max_cols, budget, char_limit):
+    if sheet['kind']=='chartsheet': return {'continuations':[],'tail_read':None,'note':'Chart-only sheet has no cell pages.'}
+    dims=sheet['dimensions']; window=sheet['requested_window']; start_row=window['start_row']; start_col=window['start_col']
+    end_row=min(dims['rows'],start_row+max_rows-1); end_col=min(dims['columns'],start_col+max_cols-1)
+    def request(purpose,row,col,nr,nc):
+        return {'purpose':purpose,'same_input_file':True,'options':{'sheets':[sheet['name']],'start_row':row,'start_col':col,'max_rows':min(2000,max(1,nr)),'max_cols':min(200,max(1,nc)),'max_cells':budget,'max_cell_chars':char_limit}}
+    requests=[]; last=sheet['sampled_range']['last_cell']
+    if not sheet['window_complete']:
+        if last:
+            last_row,last_col=openpyxl.utils.cell.coordinate_to_tuple(last)
+            if last_col<end_col: requests.append(request('finish_partial_row',last_row,last_col+1,1,end_col-last_col))
+            if last_row<end_row: requests.append(request('finish_remaining_window_rows',last_row+1,start_col,end_row-last_row,end_col-start_col+1))
+        else: requests.append(request('retry_this_sheet_with_fresh_cell_budget',start_row,start_col,max_rows,max_cols))
+    if end_row<dims['rows']: requests.append(request('next_row_window_same_columns',end_row+1,start_col,max_rows,max_cols))
+    if end_col<dims['columns']: requests.append(request('next_column_window_same_rows',start_row,end_col+1,max_rows,max_cols))
+    return {'continuations':requests,'tail_read':request('read_tail_rows_same_columns',max(1,dims['rows']-max_rows+1),start_col,max_rows,max_cols),'note':'Requests are independent reading directions, not a single sequential cursor. Finish partial rows/windows before advancing; compare source_sha256 on every call.'}
+
+
 def inspect_workbook(path, options=None):
     if options is None: options={}
-    _known_fields(options,{'sheets','start_row','start_col','max_rows','max_cols','max_cells','max_cell_chars'},'inspection options')
+    _known_fields(options,{'sheets','start_row','start_col','max_rows','max_cols','max_cells','max_cell_chars','expected_source_sha256'},'inspection options')
+    expected_hash=options.get('expected_source_sha256')
+    if expected_hash is not None and (not isinstance(expected_hash,str) or re.fullmatch(r'[0-9a-fA-F]{64}',expected_hash) is None): raise ValueError('expected_source_sha256 must be a 64-character hex digest')
     max_rows=_int(options.get('max_rows',100),1,2000,'max_rows')
     max_cols=_int(options.get('max_cols',50),1,200,'max_cols')
     start_row=_int(options.get('start_row',1),1,1048576,'start_row')
@@ -293,6 +423,8 @@ def inspect_workbook(path, options=None):
         source_bytes=source_file.read(MAX_FILE+1)
         after=os.fstat(source_file.fileno())
     if (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns): raise ValueError('Source changed while taking workbook snapshot; retry after editing stops')
+    snapshot_hash=hashlib.sha256(source_bytes).hexdigest()
+    if expected_hash is not None and snapshot_hash!=expected_hash.lower(): raise ValueError('Source snapshot mismatch: workbook changed since the prior inspection; restart inspection without an expected hash and do not mix versions')
     z,names=_archive(path,source_bytes)
     try:
         feature_prefixes={'charts':'xl/charts/','drawings':'xl/drawings/','pivot_tables':'xl/pivotTables/','pivot_caches':'xl/pivotCache/','external_links':'xl/externalLinks/','embeddings':'xl/embeddings/','slicers':'xl/slicers/','connections':'xl/connections'}
@@ -361,7 +493,20 @@ def inspect_workbook(path, options=None):
         for chart in charts:
             chart['sheets']=[name for name,info in drawings.items() if any(o['part']==chart['part'] and o['kind']=='chart' for o in info['objects'])]
         if selection is not None: charts=[c for c in charts if set(c['sheets'])&set(selection)]
-        return {'schema_version':1,'operation':'inspect','resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(source_bytes).hexdigest(),'source_consistency':'single immutable byte snapshot; later concurrent edits are not reflected','available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'library_warnings':library_warnings,'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':(['Parser reported unsupported or unparsed features; inspect library_warnings. Original source was not modified.'] if library_warnings else [])+['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
+        chart_source_sampling=_resolve_chart_sources(charts,wb,cached,hashlib.sha256(source_bytes).hexdigest())
+        for chart in charts: chart['source_summary']=_chart_task_summary(chart)
+        for sheet in sheets:
+            sheet['navigation']=_navigation(sheet,max_rows,max_cols,budget,char_limit)
+            source_hash=hashlib.sha256(source_bytes).hexdigest()
+            identity={'source_sha256':source_hash,'sheet':sheet['name'],'window':sheet['requested_window'],'sample':sheet['sampled_range'],'max_cell_chars':char_limit}
+            sheet['page_id']=hashlib.sha256(json.dumps(identity,sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
+            for request in sheet['navigation']['continuations']+([sheet['navigation']['tail_read']] if sheet['navigation']['tail_read'] else []):
+                request['expected_source_sha256']=source_hash
+                request['options']['expected_source_sha256']=source_hash
+                request['request_id']=hashlib.sha256(json.dumps({'source_sha256':source_hash,'options':request['options']},sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
+            sheet['summary']={'kind':sheet['kind'],'state':sheet['state'],'sampled_cells':sheet['sampled_range']['cell_count'] if sheet['sampled_range'] else 0,'nonempty_cells_returned':len(sheet['cells']),'formula_cells_returned':len(sheet['formulas']),'chart_count':len(sheet['chart_parts']),'needs_more_reading':bool(sheet['navigation']['continuations']),'text':f"{sheet['name']}: {sheet['kind']}, {len(sheet['cells'])} nonempty cells returned, {len(sheet['formulas'])} formulas (not calculated), {len(sheet['chart_parts'])} linked charts."}
+        summary={'text':f"Inspected {len(sheets)} of {len(wb.sheetnames)} sheets; sampled {sampled} worksheet cells and {chart_source_sampling['sampled_cells']} chart-source cells. Found {len(charts)} charts. Formulas were not calculated; cached values are unverified.",'selected_sheet_count':len(sheets),'chart_count':len(charts),'external_relationship_count':len(external),'sheets_with_more_pages':[s['name'] for s in sheets if s['summary']['needs_more_reading']],'missing_formula_caches_in_sample':missing,'sampled_chart_source_disagreements':sum(c['source_summary']['saved_value_disagreements'] for c in charts),'chart_source_comparison_scope':'Bounded saved-data comparison, not recalculation or whole-workbook correctness'}
+        return {'schema_version':1,'operation':'inspect','summary':summary,'chart_source_sampling':chart_source_sampling,'resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'additional_chart_source_cells':2000,'chart_source_cells_per_reference':100,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(source_bytes).hexdigest(),'source_consistency':'single immutable byte snapshot; later concurrent edits are not reflected','available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'library_warnings':library_warnings,'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':(['Parser reported unsupported or unparsed features; inspect library_warnings. Original source was not modified.'] if library_warnings else [])+['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
     finally:
         wb.close()
         if cached is not None: cached.close()

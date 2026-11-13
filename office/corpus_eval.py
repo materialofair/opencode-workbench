@@ -26,8 +26,27 @@ def evaluate(path):
         oracle=openpyxl.load_workbook(path,data_only=False,keep_links=False)
         sheet_compare={'source':oracle.sheetnames,'reported':report['available_sheets'],'equal':oracle.sheetnames==report['available_sheets']}
         chart_counts={ws.title:len(ws._charts) for ws in oracle._sheets}
+        source_point_checks=0; source_point_gaps=[]
+        for chart in report['charts']:
+            roles=[chart.get('title_data')]
+            for plot in chart['plots']:
+                for series in plot['series']: roles.extend(series.get(key) for key in ('name','categories','values','x_values','y_values','bubble_size'))
+            for role in roles:
+                if not role: continue
+                for source in role.get('sources',[]):
+                    if source.get('status')!='local_range': continue
+                    if source.get('read_options',{}).get('expected_source_sha256')!=report['source_sha256']: source_point_gaps.append({'kind':'source_read_request_missing_snapshot_binding','reference':source['reference']})
+                    for point in source.get('points',[]):
+                        cell=oracle[source['sheet']][point['cell']]
+                        if cell.data_type=='f': continue  # No independent calculation oracle is available.
+                        value=cell.value
+                        if hasattr(value,'isoformat'): value=value.isoformat()
+                        elif value is not None and not isinstance(value,(str,int,float,bool)): value=str(value)
+                        if point.get('text_truncated') and isinstance(value,str): value=value[:1000]
+                        source_point_checks+=1
+                        if point['value']!=value: source_point_gaps.append({'kind':'chart_source_point_difference','sheet':source['sheet'],'cell':point['cell'],'reported':point['value'],'openpyxl':value})
         oracle.close()
-    gaps=[]; source_charts={}; source_arrays=[]; chart_sheets=[]
+    gaps=list(source_point_gaps); source_charts={}; source_arrays=[]; chart_sheets=[]
     with zipfile.ZipFile(path) as z:
         relationships={r.get('Id'):posixpath.normpath(r.get('Target').lstrip('/') if r.get('Target','').startswith('/') else posixpath.join('xl',r.get('Target',''))) for r in ET.fromstring(z.read('xl/_rels/workbook.xml.rels')) if r.get('TargetMode')!='External'}
         workbook=ET.fromstring(z.read('xl/workbook.xml'))
@@ -65,7 +84,7 @@ def evaluate(path):
         counts=[len(s['chart_parts']) for s in report['sheets']]
         titles=sorted(c['title'] for c in report['charts'])
         assertions=[{'source':'Apache POI TestXSSFChart.testGetCharts at pinned commit','assertion':'sheet chart distribution is [0,2,1]','passed':counts==[0,2,1],'actual':counts},{'source':'Apache POI TestXSSFChart.testGetCharts at pinned commit','assertion':'three titles are empty, Pie Chart Title Thingy, Sheet 3 Chart with Title','passed':titles==sorted(['','Pie Chart Title Thingy','Sheet 3 Chart with Title']),'actual':titles}]
-    return {'file':Path(path).name,'status':'gap' if gaps or any(not a['passed'] for a in assertions) else 'passed_comparisons','inspect_seconds':round(elapsed,4),'sheet_comparison':sheet_compare,'chart_counts_openpyxl':chart_counts,'raw_chart_count':len(source_charts),'reported_chart_count':len(reported),'array_formulas_source':source_arrays,'gaps':gaps,'upstream_assertions':assertions,'library_warnings':list(dict.fromkeys(str(w.message) for w in caught)),'engine_report':report}
+    return {'file':Path(path).name,'status':'gap' if gaps or any(not a['passed'] for a in assertions) else 'passed_comparisons','inspect_seconds':round(elapsed,4),'sheet_comparison':sheet_compare,'chart_counts_openpyxl':chart_counts,'independent_chart_source_points_compared':source_point_checks,'raw_chart_count':len(source_charts),'reported_chart_count':len(reported),'array_formulas_source':source_arrays,'gaps':gaps,'upstream_assertions':assertions,'library_warnings':list(dict.fromkeys(str(w.message) for w in caught)),'engine_report':report}
 
 
 def main():

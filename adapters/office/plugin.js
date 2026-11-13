@@ -64,10 +64,12 @@ function environment() {
       env[key] = process.env[key];
   return env;
 }
-async function executeHtmlValidation(root, input, output, signal) {
+async function executeHtmlValidation(root, input, output, signal, mode = "static") {
   const failed = (status, error) => JSON.stringify({ ok: false, status, error: error.slice(0, 2048), evidence_directory: output, warning: "Inspect partial evidence before retry; use a new output directory." });
   if (signal?.aborted)
     return failed("cancelled", "Validation cancelled before execution");
+  if (!["static", "first-party-table"].includes(mode))
+    return failed("unsupported", "Only static and fixed first-party-table validation modes are supported");
   let paths, node;
   try {
     paths = validateHtmlPaths(root, input, output);
@@ -76,7 +78,7 @@ async function executeHtmlValidation(root, input, output, signal) {
     return failed("failed", String(error));
   }
   return new Promise((resolve) => {
-    const child = spawn(node, [script, paths.inputPath, paths.outputPath, "--timeout-ms", "90000"], { cwd: paths.root, shell: false, detached: process.platform !== "win32", env: environment(), stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(node, [script, paths.inputPath, paths.outputPath, "--timeout-ms", "90000", ...mode === "static" ? [] : ["--mode", mode]], { cwd: paths.root, shell: false, detached: process.platform !== "win32", env: environment(), stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "", stderr = "", terminal, settled = false;
     let forceTimer;
     const finish = (value) => {
@@ -134,6 +136,8 @@ async function executeHtmlValidation(root, input, output, signal) {
         const result = JSON.parse(stdout);
         if (result.version !== 2 || typeof result.passed !== "boolean" || !Array.isArray(result.evidence) || !["passed", "failed", "blocked", "unsupported", "limited"].includes(result.status))
           throw new Error("Invalid QA result schema");
+        if (result.mode !== mode)
+          throw new Error("QA mode differs from requested mode");
         if (code === 0 !== result.passed)
           throw new Error("QA exit/result mismatch");
         for (const e of result.evidence)
@@ -244,15 +248,16 @@ async function executeOffice(root, request, signal) {
   });
 }
 var OfficeArtifacts = async (ctx) => ({ tool: {
-  office_validate_html: tool({ description: "Validate an existing project HTML in fresh static offline Chromium contexts. Requests and JavaScript disabled. Writes NEW screenshot/PDF/JSON evidence directory. Browser-context isolation, not OS sandbox. Script-dependent HTML is unsupported; screenshots require visual review.", args: { input: tool.schema.string().max(4096), output: tool.schema.string().max(4096).describe("New project-relative evidence directory; parent must exist") }, execute: async (args, context) => {
+  office_design_reference: tool({ description: "Search pinned local design references for composition, typography, color, charts or usability. No network, font downloads or file writes. Results are suggestions with provenance, never an aesthetic score.", args: { query: tool.schema.string().min(1).max(256), domain: tool.schema.enum(["style", "color", "chart", "typography", "landing", "product", "ux", "web"]), limit: tool.schema.number().int().min(1).max(5).default(3) }, execute: async (args, context) => executeOffice(ctx.directory, { operation: "design_reference", query: args.query, domain: args.domain, limit: args.limit }, context.abort) }),
+  office_validate_html: tool({ description: "Validate project HTML in fresh offline Chromium contexts. Static mode disables page JavaScript; opt-in first-party-table permits only the pinned local table runtime after strict preflight and external CSP enforcement. Arbitrary scripts unsupported. NEW evidence directory; not an OS sandbox or aesthetic acceptance.", args: { input: tool.schema.string().max(4096), output: tool.schema.string().max(4096).describe("New project-relative evidence directory; parent must exist"), mode: tool.schema.enum(["static", "first-party-table"]).default("static") }, execute: async (args, context) => {
     validateHtmlPaths(ctx.directory, args.input, args.output);
     await context.ask({ permission: "read", patterns: [args.input], always: [], metadata: { operation: "office_validate_html" } });
     if (context.abort.aborted)
       return JSON.stringify({ ok: false, status: "cancelled", error: "Cancelled before output approval" });
     await context.ask({ permission: "edit", patterns: [args.output + "/**"], always: [], metadata: { operation: "office_validate_html" } });
-    return executeHtmlValidation(ctx.directory, args.input, args.output, context.abort);
+    return executeHtmlValidation(ctx.directory, args.input, args.output, context.abort, args.mode);
   } }),
-  office_capabilities: tool({ description: "Read the local versioned office protocol, supported fields and complete runnable examples BEFORE generating specs. No project files or network access.", args: { topic: tool.schema.enum(["overview", "inspect", "excel", "html"]).default("overview"), example: tool.schema.enum(["dashboard", "research", "project", "comparison", "operations"]).optional() }, execute: async (args) => {
+  office_capabilities: tool({ description: "Read the local versioned office protocol, supported fields and complete runnable examples BEFORE generating specs. No project files or network access.", args: { topic: tool.schema.enum(["overview", "inspect", "excel", "html", "design"]).default("overview"), example: tool.schema.enum(["dashboard", "research", "project", "comparison", "operations"]).optional() }, execute: async (args) => {
     const protocol = JSON.parse(readFileSync2(join2(engine, "capabilities.json"), "utf8"));
     const result = args.topic === "overview" ? protocol : { protocol_version: protocol.protocol_version, [args.topic]: protocol[args.topic], shared_chart: protocol.shared_chart, outputs: protocol.outputs };
     if (args.example)

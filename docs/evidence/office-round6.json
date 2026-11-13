@@ -1,0 +1,100 @@
+{
+  "date": "2026-11-13",
+  "source_sha256": {
+    "office/office_engine/excel.py": "410ecfd8ea0ad6cdf1a3db6e482aea541a372565def82d11aeb6d9d012cfc511",
+    "office/office_engine/html.py": "fa6400d453aec2c47de4194c67dd2257bb240e82e441dc435426a28570730764",
+    "office/office_engine/design.py": "13a6c20f9d29a547fb43acfa6e54a662b029fe639c3e2336688a028be0be5b66",
+    "office/first-party-table.js": "4dc9bd882c89976a2ac891a5a57c0ec31c82f6c2f6fedc26657e6408ab67ddc2",
+    "office/qa-html.mjs": "b3e4063760eeec3bc685d93d411164ddc2eb6cfaf079be738140230c29ecbed3",
+    "adapters/office/validate.ts": "5b50519e7a31d59bd92fb17748f2cf335933d431ee187c35e2071c532f95d8ab"
+  },
+  "bun": {
+    "passed": 87,
+    "skipped": 1,
+    "failed": 0
+  },
+  "python": {
+    "passed": 104,
+    "failed": 0
+  },
+  "host_workflow": {
+    "real_backend": true,
+    "real_model": false,
+    "uses_user_credentials": false,
+    "scope": "synthetic temporary project only",
+    "workflow": true,
+    "interactive": true,
+    "registered_tools": [
+      "office_design_reference",
+      "office_validate_html",
+      "office_capabilities",
+      "office_inspect_excel",
+      "office_generate_excel",
+      "office_render_html"
+    ],
+    "artifact_created": true,
+    "model_requests": 4,
+    "validation_report_created": true,
+    "validation_passed": true,
+    "validation_status": "passed",
+    "validation_error": null,
+    "source": {
+      "sha256": "cdca9a7af883e3d08fddfb2d8ce176443b9dec4d5d845c24fbbbeb4f804815b5",
+      "chart_count": 1,
+      "formulas_unverified": true,
+      "rows": [
+        [
+          "Jan",
+          120,
+          130
+        ],
+        [
+          "Feb",
+          155,
+          150
+        ],
+        [
+          "Mar",
+          143,
+          150
+        ]
+      ]
+    },
+    "success": true
+  },
+  "public_corpus": {
+    "passed": 15,
+    "failed": 0,
+    "new_source_points_cross_checked": 68
+  },
+  "interactive_security": {
+    "independent_variants": 9,
+    "numeric_attribute_tamper_fixed": true,
+    "print_cell_boundary_and_header_tamper_rejected": true,
+    "scope": "Fixed runtime only; no general arbitrary-JavaScript or OS isolation certification"
+  },
+  "design_sources": [
+    {
+      "repository": "anthropics/skills",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "retained_files": 2
+    },
+    {
+      "repository": "vercel-labs/web-interface-guidelines",
+      "commit": "434b7f91364665f2f733b310ec54809bf8f37937",
+      "retained_files": 2
+    },
+    {
+      "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "commit": "6ae86f61f520d6ca229d2f40e070410638c908c5",
+      "retained_files": 14
+    }
+  ],
+  "visual_topology_rework": "planned; not claimed complete",
+  "limitations": [
+    "Synthetic model, not enterprise GLM5.3",
+    "No company documents or Windows native validation",
+    "No arbitrary Excel formula computation or lossless editing",
+    "Local design references are not aesthetic scores; real screenshots must be reviewed"
+  ]
+}

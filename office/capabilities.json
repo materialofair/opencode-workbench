@@ -12,7 +12,8 @@
       "max_rows": "1..2000, default 100",
       "max_cols": "1..200, default 50",
       "max_cells": "1..100000, default 10000; shared budget across selected sheets",
-      "max_cell_chars": "1..32767, default 1000"
+      "max_cell_chars": "1..32767, default 1000",
+      "expected_source_sha256": "Optional 64-hex digest from prior inspection; mismatch rejects before workbook parsing. Continuation/read_options include this automatically."
     },
     "workflow": "Inspect available_sheets first; then use sheets and start_row/start_col to retrieve later windows. Check requested/sample ranges and truncation. Cache freshness is never verified.",
     "resource_limits": {
@@ -24,12 +25,18 @@
       "attribute_characters": 65536,
       "shared_strings": 200000,
       "style_records": 10000,
-      "note": "All budgets apply together. Larger/denser documents fail explicitly rather than silently parse partially."
+      "note": "All budgets apply together. Larger/denser documents fail explicitly rather than silently parse partially.",
+      "additional_chart_source_cells": 2000,
+      "chart_source_cells_per_reference": 100
     },
     "output_notes": {
       "formula_records": "formula_type and formula_metadata preserve normal/array/dataTable semantics; formula expression is text or null when none exists. Cached values are unverified.",
       "sheet_kind": "worksheet has a cell grid; chartsheet has dimensions=null and no cell window, but chart/drawing relationships remain.",
-      "library_warnings": "Unsupported extensions/header/footer/etc warnings are captured. Omitted in-memory interpretation does not mean source file was modified."
+      "library_warnings": "Unsupported extensions/header/footer/etc warnings are captured. Omitted in-memory interpretation does not mean source file was modified.",
+      "navigation": "sheets[].page_id identifies snapshot/window/sample. sheets[].navigation.continuations[] and tail_read supply purpose, options, expected_source_sha256 and request_id. Call the same input with options directly. Finish partial-row/window requests before advancing; independent directions are not a single cursor.",
+      "chart_sources": "charts[].plots[].series[].{name,categories,values,x_values,y_values,bubble_size}.sources[] resolve explicit local A1 ranges to bounded source points with cell addresses, stored values/formulas, source_reliability, chart_cache_comparison and read_request.options. Named expressions, unions and external references remain explicit unresolved; no formula evaluation.",
+      "cache_semantics": "Cache point indices/gaps/empty states and multilevel_caches preserve hierarchy. Equality means stored representations only, never freshness. Truncated cache comparisons are not_comparable; source display truncation is explicit.",
+      "summary": "Readable summary aggregates chart-source comparisons, missing caches and actionable limitations; it does not imply unsampled cells were reviewed."
     }
   },
   "excel": {
@@ -152,7 +159,8 @@
       "period": "optional",
       "eyebrow": "optional",
       "footer": "optional",
-      "sections": "Nonempty array"
+      "sections": "Nonempty array",
+      "interaction": "Optional static (default) | first-party-table. The latter embeds only the fixed local table search/sort runtime; no arbitrary JavaScript."
     },
     "section_common": {
       "type": "kpis|table|timeline|chart|callout|text|board|sources",
@@ -161,7 +169,7 @@
     },
     "section_fields": {
       "kpis": "items:[{label,value,note?}], textual values",
-      "table": "headers:[string],rows:[[string|finite-number|boolean|null]],caption?; null renders blank, never zero",
+      "table": "headers:[string],rows:[[string|finite-number|boolean|null]],caption?; null renders blank, never zero; interactive?:boolean (default true only in first-party-table mode; true requires that mode)",
       "timeline": "items:[{date,title,body?}]",
       "chart": "chart: shared_chart",
       "callout": "body:string,source_ids?:[defined-source-id]",
@@ -176,13 +184,14 @@
       "tool": "office_validate_html",
       "args": {
         "input": "existing project-relative .html file",
-        "output": "new project-relative evidence directory; existing parent"
+        "output": "new project-relative evidence directory; existing parent",
+        "mode": "static (default) | first-party-table; explicit opt-in only"
       },
       "permissions": [
         "read input",
         "edit output/**"
       ],
-      "mode": "JavaScript disabled; offline; all requests aborted; Chromium sandbox explicitly requested with no downgrade. Fresh browser-context isolation, not OS sandbox. Embedded iframe/frame/object/embed tags conservatively rejected before parsing.",
+      "mode": "Default static disables page JavaScript. first-party-table first inspects the same bytes with JavaScript disabled and accepts one exact fixed local runtime only, then uses a fresh context with independently enforced response-header hash CSP. All external requests blocked; Chromium sandbox requested without downgrade. Not an OS sandbox or source-identity authentication.",
       "limits": {
         "html_bytes": 4194304,
         "dom_elements": 50000,
@@ -194,7 +203,8 @@
       },
       "statuses": "passed|failed|blocked|unsupported|limited|cancelled; only passed is success",
       "artifacts": "report.evidence filenames under evidence_directory; screenshot/PDF visual review required",
-      "print": "Default and open states each get separate layout budgets. Evidence PDF forced A4, 1-25 pages; reaching cap or uncertain page-object count is limited, never complete/pass. Native print pagination still needs visual review."
+      "print": "Default and open states each get separate layout budgets. Evidence PDF forced A4, 1-25 pages; reaching cap or uncertain page-object count is limited, never complete/pass. Native print pagination still needs visual review.",
+      "interactive": "Only deterministic table search, reset and stable sort are supported and checked. Unknown/duplicate scripts, event handlers, javascript URLs, embedded frames/objects, base, meta refresh, noscript and template are rejected; scripts cannot be added through tool parameters."
     }
   },
   "shared_chart": {
@@ -215,5 +225,16 @@
     "macro execution",
     "network refresh",
     "automatic publication"
-  ]
+  ],
+  "design": {
+    "tool": "office_design_reference",
+    "args": {
+      "query": "1..256 characters; concise English retrieval terms work best in the pinned catalog",
+      "domain": "style|color|chart|typography|landing|product|ux|web",
+      "limit": "1..5, default 3"
+    },
+    "workflow": "Use installed office-visual-composition skill: brief, compare two content/layout plans, choose deliberate tokens, source/chart narrative, render, actual screenshot critique and revision. Local references inform decisions but never replace visual judgment.",
+    "outputs": "Bounded local catalog matches with repository commit and CSV hashes; no-match is explicit. External font/CDN/asset loading fields are removed; system CJK fallbacks only.",
+    "limits": "No persist, arbitrary paths, network, installers, external fonts, telemetry or automatic aesthetic score. visual_review stays pending-human-review until actual images are reviewed."
+  }
 }

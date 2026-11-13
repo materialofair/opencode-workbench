@@ -128,3 +128,38 @@ test('wide nested table and chart regions settle at their first column before sc
   }
  }finally{r.cleanup();}
 },30000);
+
+test('explicit first-party mode executes only fixed runtime and checks every table and column',()=>{
+ const html=readFileSync('office/examples/interactive-tables.html','utf8');const r=run(html,{flags:['--mode','first-party-table']});
+ try{expect(r.code).toBe(0);expect(r.report.header_csp_enforced).toBe(true);expect(r.report.interactive_contexts_started).toBe(3);expect(r.report.interactive_preflight.table_count).toBe(2);expect(r.report.print.filtered_full_source_preserved).toBe(true);expect(r.report.network_responses).toHaveLength(0);expect(r.report.blocked_requests).toHaveLength(0);for(const v of r.report.views){expect(v.fixed_runtime_checks).toHaveLength(2);expect(v.fixed_runtime_checks.every((x:any)=>x.all_columns_checked)).toBe(true);}expect(r.report.evidence.some((e:any)=>e.filename==='print-filtered.pdf')).toBe(true);}finally{r.cleanup();}
+},30000);
+
+test('static remains default and does not authorize even the reviewed runtime',()=>{
+ const r=run(readFileSync('office/examples/interactive-tables.html','utf8'));
+ try{expect(r.code).toBe(1);expect(r.report.status).toBe('unsupported');expect(r.report.mode).toBe('static');expect(r.report.interactive_contexts_started).toBeUndefined();}finally{r.cleanup();}
+},30000);
+
+test('first-party preflight rejects arbitrary, duplicate, changed, event and parser-changing code',()=>{
+ const html=readFileSync('office/examples/interactive-tables.html','utf8'),runtime=readFileSync('office/first-party-table.js','utf8');
+ const invalid=[html.replace('</body>','<script>document.title="EVIL"</script></body>'),html.replace('</body>','<script>'+runtime+'</script></body>'),html.replace(runtime,runtime+'\n/* altered */'),html.replace('<body ','<body onload="document.title=\'EVIL\'" '),html.replace('</head>','<base href="https://example.invalid"></head>'),html.replace('</body>','<noscript><p>different parser</p></noscript></body>'),html.replace('</body>','<template><script>evil()</script></template></body>'),html.replace('</head>','<meta http-equiv="refresh" content="0;url=https://example.invalid"></head>'),html.replace('</body>','<a href="java&#10;script:alert(1)">bad</a></body>')];
+ for(const candidate of invalid){const r=run(candidate,{flags:['--mode','first-party-table']});try{expect(r.code).toBe(1);expect(r.report.status).toBe('unsupported');expect(r.report.interactive_contexts_started).toBeUndefined();expect(r.report.evidence).toHaveLength(0);}finally{r.cleanup();}}
+},30000);
+
+test('mobile long ASCII source hash and URL do not overflow prose',()=>{
+ const root=mkdtempSync(join(tmpdir(),'office-hash-wrap-'));
+ try{const file=join(root,'rendered.html');const spec={version:1,title:'Source identifiers',sections:[{type:'text',body:'Source SHA256: '+'a'.repeat(64)+'; formula caches remain unverified. https://example.invalid/'+'b'.repeat(200)}]};const result=Bun.spawnSync(['office/.venv/bin/python','-c','import json,sys;from office_engine.html import render_html;render_html(json.loads(sys.argv[1]),sys.argv[2])',JSON.stringify(spec),file],{env:{...process.env,PYTHONPATH:'office',PYTHONDONTWRITEBYTECODE:'1'}});expect(result.exitCode).toBe(0);const r=run(readFileSync(file,'utf8'));try{expect(r.code).toBe(0);expect(r.report.views.every((v:any)=>!v.horizontal_overflow)).toBe(true);}finally{r.cleanup();}}finally{rmSync(root,{recursive:true,force:true});}
+},30000);
+
+
+test('numeric metadata must match visible values before enabling scripts',()=>{
+ const html=readFileSync('office/examples/interactive-tables.html','utf8').replace('data-office-number="20"','data-office-number="-20"');
+ const r=run(html,{flags:['--mode','first-party-table']});try{expect(r.code).toBe(1);expect(r.report.status).toBe('unsupported');expect(r.report.error).toContain('Numeric metadata');expect(r.report.interactive_contexts_started).toBeUndefined();}finally{r.cleanup();}
+},30000);
+
+test('filtered print comparison rejects cell-boundary collisions and header changes',()=>{
+ const html=readFileSync('office/examples/interactive-tables.html','utf8');
+ for(const mutate of [(copy:string)=>copy.replace('INC-101</td><td>财务','INC-10</td><td>1财务'),(copy:string)=>copy.replace('工单</th>','伪造表头</th>')]){
+ const start=html.indexOf('<div class="interactive-print">');expect(start).toBeGreaterThan(0);const altered=html.slice(0,start)+mutate(html.slice(start));expect(altered).not.toBe(html);
+ const r=run(altered,{flags:['--mode','first-party-table']});try{expect(r.code).toBe(1);expect(r.report.error).toContain('Filtered-state print');expect(r.report.print.filtered_full_source_preserved).not.toBe(true);}finally{r.cleanup();}
+ }
+},30000);

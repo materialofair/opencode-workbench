@@ -155,6 +155,28 @@ class HtmlTests(unittest.TestCase):
                 continue
             _,html=self.render(json.loads(path.read_text()))
             self.assertEqual(html,path.with_suffix('.html').read_text())
+    def test_first_party_runtime_is_fixed_hashed_and_explicit(self):
+        import hashlib,base64
+        s=self.spec();s['interaction']='first-party-table';s['sections']=[{'type':'table','headers':['项','数'],'rows':[['<script>alert(1)</script>',3],['空',None]]}]
+        _,html=self.render(s)
+        runtime=(Path(__file__).parents[1]/'first-party-table.js').read_text()
+        digest=base64.b64encode(hashlib.sha256(runtime.encode()).digest()).decode()
+        self.assertEqual(html.count('<script>'),1)
+        self.assertIn("script-src 'sha256-"+digest+"'",html)
+        self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;',html)
+        self.assertIn('class="interactive-print"',html)
+        self.assertIn('data-office-number="3"',html)
+    def test_interactive_mode_and_flags_are_strict(self):
+        s=self.spec();s['interaction']='arbitrary-javascript'
+        with self.assertRaises(ValueError):self.render(s)
+        s=self.spec();s['sections']=[{'type':'table','headers':['A'],'rows':[],'interactive':True}]
+        with self.assertRaises(ValueError):self.render(s)
+        s['interaction']='first-party-table';s['sections'][0]['interactive']='yes'
+        with self.assertRaises(ValueError):self.render(s)
+    def test_long_ascii_identifiers_can_wrap(self):
+        s=self.spec();s['sections']=[{'type':'text','body':'Source SHA256: '+'a'*64+'; formula caches remain unverified. https://example.invalid/'+'b'*200}]
+        _,html=self.render(s)
+        self.assertIn('white-space:pre-line;overflow-wrap:anywhere',html)
     def test_zero_pie_rejected(self):
         s=self.spec();s['sections'][0]['chart'].update(type='pie',series=[{'name':'x','values':[0,0]}])
         with self.assertRaises(ValueError):self.render(s)

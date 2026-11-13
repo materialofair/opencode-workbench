@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "scenario": "operations",
+  "interaction": "first-party-table",
+  "title": "服务运营：可搜索与排序的本地台账",
+  "subtitle": "原创合成数据。搜索和排序仅在本页执行，不发送任何请求。",
+  "sections": [
+    {
+      "type": "table",
+      "title": "工单优先级",
+      "headers": [
+        "工单",
+        "责任团队",
+        "等待小时",
+        "状态"
+      ],
+      "rows": [
+        [
+          "INC-103",
+          "服务",
+          20,
+          "处理中"
+        ],
+        [
+          "INC-101",
+          "财务",
+          3,
+          "待核对"
+        ],
+        [
+          "INC-102",
+          "服务",
+          3,
+          "待回复"
+        ],
+        [
+          "INC-104",
+          "研发",
+          null,
+          "等待数据"
+        ]
+      ]
+    },
+    {
+      "type": "table",
+      "title": "空台账",
+      "headers": [
+        "事项",
+        "状态"
+      ],
+      "rows": []
+    },
+    {
+      "type": "table",
+      "title": "固定说明",
+      "interactive": false,
+      "headers": [
+        "项目",
+        "说明"
+      ],
+      "rows": [
+        [
+          "数据",
+          "均为合成示例"
+        ]
+      ]
+    }
+  ]
+}

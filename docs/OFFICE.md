@@ -133,3 +133,11 @@ python3 office/offline_rehearsal.py --output ../new-offline-run --npm-cache /pat
 - HTML限4MiB、DOM限50,000节点、脚本内90秒/宿主95秒、每个证据限16MiB。超长截图、打印页数达到25页上限均不算通过；打印CSS另检查宽高与强制分页。截图/PDF可能是部分证据，请读status与warning，不只看文件存在。
 - 输出目录不得已存在、不得越出项目；取消/错误可能留下部分新文件，检查后另选新目录重试。同用户进程并发恶意替换路径不在完整OS隔离保证内。
 - `passed`只表示这些静态检查通过，截图仍须人工审美审阅，PDF分页、业务数据与内网GLM效果也分别验收。默认状态打印文件现在叫`print-default.pdf`。
+
+## 交互与来源可用性增量
+
+HTML可显式设置 `interaction:"first-party-table"`，table section可用`interactive:false`关闭个别表格交互。验收也必须显式传`mode:"first-party-table"`；默认static继续禁脚本。只执行固定本地运行时，预检exact单脚本及显示值一致性，工具独立响应头CSP不可被页面meta放宽。搜索、稳定排序、清空、匹配数和筛选后的全量打印被分别验证。任意脚本、重复/修改运行时或危险嵌入不支持。不是任意网页的安全沙箱或生成者身份认证。
+
+Excel图表role的sources给出有界本地单元格来源、缓存差异和后续read_options；每次额外最多2000格、单引用100格。cache稀疏索引、多层标签与截断状态保留，不补零、不把保存值一致当作新鲜度。sheet.navigation给出半行恢复、续窗与尾部读取请求，options自带expected_source_sha256；源文件改变则拒绝合并版本。
+
+新增`office_design_reference`，按需查询8域本地设计依据；设计组合详见`docs/OFFICE_DESIGN.md`。本地开发工作树已试装office-artifacts与office-visual-composition，不改其他项目、内网模型、全局权限或PPT技能。

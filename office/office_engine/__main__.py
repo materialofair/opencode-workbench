@@ -40,6 +40,9 @@ def run(request, root):
     if operation == 'inspect_excel':
         from .excel import inspect_workbook
         result = inspect_workbook(scoped(root, request.get('input')), request.get('options'))
+    elif operation == 'design_reference':
+        from .design import design_reference
+        result = design_reference(request)
     elif operation in ('generate_excel', 'render_html'):
         output = scoped(root, request.get('output'), output=True)
         if operation == 'generate_excel':
