@@ -146,18 +146,29 @@ def _archive(path, data=None):
         z.close(); raise
 
 
+EXCEL_ERROR_VALUES={'#NULL!','#DIV/0!','#VALUE!','#REF!','#NAME?','#NUM!','#N/A','#GETTING_DATA','#SPILL!','#CALC!','#FIELD!','#BLOCKED!','#CONNECT!','#UNKNOWN!'}
+
+
 def _cache_points(cache):
     points=cache.findall('c:pt',NS); declared=cache.find('c:ptCount',NS)
     declared_value=declared.get('val','') if declared is not None else ''
-    count=int(declared_value) if declared_value.isdigit() else None
+    number=lambda text: int(text) if text.isascii() and text.isdigit() and len(text)<=10 and int(text)<=4294967295 else None
+    count=number(declared_value)
+    all_indexes=[number(p.get('idx','')) for p in points]
+    seen=set(); duplicates=set()
+    for index in all_indexes:
+        if index is not None and index in seen: duplicates.add(index)
+        seen.add(index)
+    invalid_indices=sum(index is None or count is not None and index>=count for index in all_indexes)
+    integrity='invalid' if duplicates or invalid_indices or declared is not None and count is None else 'valid'
     result=[]; indexes=set()
     for point in points[:200]:
-        idx=point.get('idx',''); index=int(idx) if idx.isdigit() else None
+        idx=point.get('idx',''); index=number(idx)
         value=point.find('c:v',NS)
         text=value.text if value is not None else None
         if index is not None: indexes.add(index)
-        result.append({'index':idx,'point_index':index,'value':(text or '')[:1000],'text_truncated':len(text or '')>1000,'value_state':'missing_value_element' if value is None else 'empty' if text is None or text=='' else 'present'})
-    return {'declared_point_count':count,'stored_point_count':len(points),'points':result,'missing_indices_in_first_200':[i for i in range(min(count or 0,200)) if i not in indexes],'truncated':len(points)>200,'gap_note':'Missing point indices are absent cached data, not zero. Empty value text is distinct from an absent point.'}
+        result.append({'index':idx,'point_index':index,'value':(text or '')[:1000],'text_truncated':len(text or '')>1000,'value_state':'error' if cache.tag.split('}')[-1] in ('numCache','numLit') and text in EXCEL_ERROR_VALUES else 'missing_value_element' if value is None else 'empty' if text is None or text=='' else 'present'})
+    return {'declared_point_count':count,'index_integrity':integrity,'duplicate_indices':sorted(duplicates)[:200],'invalid_or_out_of_range_index_count':invalid_indices,'stored_point_count':len(points),'points':result,'missing_indices_in_first_200':[i for i in range(min(count or 0,200)) if i not in indexes],'truncated':len(points)>200,'gap_note':'Missing point indices are absent cached data, not zero. Empty value text is distinct from an absent point.'}
 
 
 def _chart_role(node):
@@ -326,18 +337,25 @@ def _resolve_chart_sources(charts, wb, cached, source_hash):
                 points=[]; limit=min(100,remaining,source['total_cells']); one_d=source['point_mapping']=='row_major_one_dimensional'
                 for index in range(limit):
                     r=r1+index//(c2-c1+1); c=c1+index%(c2-c1+1)
-                    cell=ws.cell(r,c); value=cell.value; formula=None; reliability='stored_cell_value'
+                    cell=ws.cell(r,c); value=cell.value; formula=None; reliability='stored_cell_error' if cell.data_type=='e' else 'stored_cell_value'
+                    source_error=value if cell.data_type=='e' else None
                     if cell.data_type=='f':
-                        _,_,formula=_formula_details(value); value=saved.cell(r,c).value; reliability='formula_cache_missing' if value is None else 'formula_cache_unverified'
+                        _,_,formula=_formula_details(value); cached_cell=saved.cell(r,c); value=cached_cell.value; source_error=value if cached_cell.data_type=='e' else None; reliability='formula_cache_error' if source_error is not None else 'formula_cache_missing' if value is None else 'formula_cache_unverified'
                     rendered=_json(value)
                     value_truncated=isinstance(rendered,str) and len(rendered)>1000
                     formula_truncated=isinstance(formula,str) and len(formula)>1000
                     if isinstance(rendered,str): rendered=rendered[:1000]
-                    point={'point_index':index if one_d else None,'cell':cell.coordinate,'value':rendered,'formula':formula[:1000] if isinstance(formula,str) else formula,'text_truncated':value_truncated,'formula_truncated':formula_truncated,'comparison_basis':'Complete saved source value; display may be truncated. Comparison skipped when chart cache text is truncated.','source_reliability':reliability,'blank':value is None,'chart_cache_comparison':'not_comparable_2d_reference' if not one_d else 'no_chart_cache_point'}
+                    point={'point_index':index if one_d else None,'cell':cell.coordinate,'value':rendered,'formula':formula[:1000] if isinstance(formula,str) else formula,'text_truncated':value_truncated,'formula_truncated':formula_truncated,'comparison_basis':'Complete saved source value; display may be truncated. Comparison skipped when chart cache text is truncated.','source_reliability':reliability,'source_error':source_error,'source_cell_type':cell.data_type,'blank':value is None,'chart_cache_comparison':'not_comparable_2d_reference' if not one_d else 'no_chart_cache_point'}
                     cp=cache_points.get(index) if one_d else None
+                    if source_error is not None: point['chart_cache_comparison']='not_comparable_source_error'
+                    elif cache and cache['index_integrity']!='valid': point['chart_cache_comparison']='not_comparable_ambiguous_cache'
                     if cp is not None:
                         point['chart_cached_value']=cp['value']; point['chart_cache_value_state']=cp['value_state']; point['chart_cached_value_truncated']=cp['text_truncated']
-                        if cp['text_truncated']: point['chart_cache_comparison']='not_comparable_truncated_cache'
+                        if source_error is not None: point['chart_cache_comparison']='not_comparable_source_error'
+                        elif cache['index_integrity']!='valid': point['chart_cache_comparison']='not_comparable_ambiguous_cache'
+                        elif cp['value_state']=='error':
+                            point['chart_cache_comparison']='not_comparable_chart_cache_error'; point['chart_cached_error']=cp['value']
+                        elif cp['text_truncated']: point['chart_cache_comparison']='not_comparable_truncated_cache'
                         elif reliability=='formula_cache_missing': point['chart_cache_comparison']='not_comparable_missing_formula_cache'
                         elif cp['value_state']!='present' or value is None: point['chart_cache_comparison']='empty_or_blank_requires_review'
                         else:
@@ -382,7 +400,7 @@ def _chart_task_summary(chart):
                 comparison=point['chart_cache_comparison']; comparisons[comparison]=comparisons.get(comparison,0)+1
                 if comparison=='different_stored_values' and len(review)<50: review.append({'sheet':source['sheet'],'cell':point['cell'],'saved_cell_value':point['value'],'saved_chart_cache':point.get('chart_cached_value')})
     mismatches=comparisons.get('different_stored_values',0)
-    return {'reference_status_counts':reference_statuses,'sampled_comparison_counts':comparisons,'saved_value_disagreements':mismatches,'disagreement_examples':review,'text':f"{mismatches} sampled saved chart/source disagreements. Matching saved values do not prove freshness; unresolved or unsampled sources remain unknown."}
+    return {'reference_status_counts':reference_statuses,'sampled_comparison_counts':comparisons,'saved_value_disagreements':mismatches,'source_error_points':comparisons.get('not_comparable_source_error',0),'ambiguous_cache_points':comparisons.get('not_comparable_ambiguous_cache',0),'chart_cache_error_points':comparisons.get('not_comparable_chart_cache_error',0),'disagreement_examples':review,'text':f"{mismatches} sampled saved chart/source disagreements; {comparisons.get('not_comparable_source_error',0)} source error points, {comparisons.get('not_comparable_chart_cache_error',0)} chart-cache error points, {comparisons.get('not_comparable_ambiguous_cache',0)} ambiguous cache points. Matching saved values do not prove freshness; unresolved or unsampled sources remain unknown."}
 
 
 def _navigation(sheet, max_rows, max_cols, budget, char_limit):
@@ -439,7 +457,7 @@ def inspect_workbook(path, options=None):
     finally: z.close()
     wb,library_warnings=_load_book(io.BytesIO(source_bytes),False)
     cached=None
-    sheets=[]; missing=0; sampled=0; remaining_chars=2_000_000
+    sheets=[]; missing=0; error_caches=0; sampled=0; remaining_chars=2_000_000
     try:
         if selection is not None and any(name not in wb.sheetnames for name in selection): raise ValueError('Unknown sheet selection: '+', '.join(name for name in selection if name not in wb.sheetnames))
         cached,cache_warnings=_load_book(io.BytesIO(source_bytes),True)
@@ -469,11 +487,13 @@ def inspect_workbook(path, options=None):
                             limit=min(char_limit,remaining_chars); clipped=len(value)>limit; value=value[:limit]; remaining_chars-=len(value)
                         item={'cell':c.coordinate,'value':value,'type':c.data_type,'format':c.number_format,'text_truncated':clipped}
                         if c.data_type=='f':
-                            cv=_json(cached[ws.title][c.coordinate].value)
+                            cached_cell=cached[ws.title][c.coordinate]; cached_error=_json(cached_cell.value) if cached_cell.data_type=='e' else None
+                            cv=_json(cached_cell.value)
                             if isinstance(cv,str): cv=cv[:min(char_limit,remaining_chars)]; remaining_chars-=len(cv)
                             item['formula_type']=formula_type; item['formula_metadata']=formula_metadata
-                            item['cached_value']=cv; item['cache_status']='missing' if cv is None else 'unverified'
-                            formulas.append({'cell':c.coordinate,'formula':value,'formula_type':formula_type,'formula_metadata':formula_metadata,'cached_value':cv,'cache_status':item['cache_status'],'text_truncated':clipped})
+                            item['cached_value']=cv; item['cached_error']=cached_error; item['cache_status']='error' if cached_error is not None else 'missing' if cv is None else 'unverified'
+                            error_caches+=int(cached_error is not None)
+                            formulas.append({'cell':c.coordinate,'formula':value,'formula_type':formula_type,'formula_metadata':formula_metadata,'cached_value':cv,'cached_error':cached_error,'cache_status':item['cache_status'],'text_truncated':clipped})
                             missing+=int(cv is None)
                         vals.append(item)
                     if row_first: spans.append(row_first+':'+row_last)
@@ -505,8 +525,8 @@ def inspect_workbook(path, options=None):
                 request['options']['expected_source_sha256']=source_hash
                 request['request_id']=hashlib.sha256(json.dumps({'source_sha256':source_hash,'options':request['options']},sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
             sheet['summary']={'kind':sheet['kind'],'state':sheet['state'],'sampled_cells':sheet['sampled_range']['cell_count'] if sheet['sampled_range'] else 0,'nonempty_cells_returned':len(sheet['cells']),'formula_cells_returned':len(sheet['formulas']),'chart_count':len(sheet['chart_parts']),'needs_more_reading':bool(sheet['navigation']['continuations']),'text':f"{sheet['name']}: {sheet['kind']}, {len(sheet['cells'])} nonempty cells returned, {len(sheet['formulas'])} formulas (not calculated), {len(sheet['chart_parts'])} linked charts."}
-        summary={'text':f"Inspected {len(sheets)} of {len(wb.sheetnames)} sheets; sampled {sampled} worksheet cells and {chart_source_sampling['sampled_cells']} chart-source cells. Found {len(charts)} charts. Formulas were not calculated; cached values are unverified.",'selected_sheet_count':len(sheets),'chart_count':len(charts),'external_relationship_count':len(external),'sheets_with_more_pages':[s['name'] for s in sheets if s['summary']['needs_more_reading']],'missing_formula_caches_in_sample':missing,'sampled_chart_source_disagreements':sum(c['source_summary']['saved_value_disagreements'] for c in charts),'chart_source_comparison_scope':'Bounded saved-data comparison, not recalculation or whole-workbook correctness'}
-        return {'schema_version':1,'operation':'inspect','summary':summary,'chart_source_sampling':chart_source_sampling,'resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'additional_chart_source_cells':2000,'chart_source_cells_per_reference':100,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(source_bytes).hexdigest(),'source_consistency':'single immutable byte snapshot; later concurrent edits are not reflected','available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'library_warnings':library_warnings,'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':(['Parser reported unsupported or unparsed features; inspect library_warnings. Original source was not modified.'] if library_warnings else [])+['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
+        summary={'text':f"Inspected {len(sheets)} of {len(wb.sheetnames)} sheets; sampled {sampled} worksheet cells and {chart_source_sampling['sampled_cells']} chart-source cells. Found {len(charts)} charts. Formulas were not calculated; cached values are unverified.",'selected_sheet_count':len(sheets),'chart_count':len(charts),'external_relationship_count':len(external),'sheets_with_more_pages':[s['name'] for s in sheets if s['summary']['needs_more_reading']],'missing_formula_caches_in_sample':missing,'formula_error_caches_in_sample':error_caches,'sampled_chart_source_disagreements':sum(c['source_summary']['saved_value_disagreements'] for c in charts),'sampled_chart_source_error_points':sum(c['source_summary']['source_error_points'] for c in charts),'sampled_chart_cache_error_points':sum(c['source_summary']['chart_cache_error_points'] for c in charts),'sampled_chart_ambiguous_cache_points':sum(c['source_summary']['ambiguous_cache_points'] for c in charts),'chart_source_comparison_scope':'Bounded saved-data comparison, not recalculation or whole-workbook correctness'}
+        return {'schema_version':1,'operation':'inspect','summary':summary,'chart_source_sampling':chart_source_sampling,'resource_limits':{'file_bytes':MAX_FILE,'unpacked_bytes':MAX_UNPACKED,'xml_nodes':MAX_XML_NODES,'stored_cells_plus_range_expansion':200000,'sqref_ranges':MAX_SQREF_RANGES,'attribute_characters':MAX_XML_ATTRIBUTE,'shared_strings':MAX_SHARED_STRINGS,'style_records':MAX_STYLE_RECORDS,'additional_chart_source_cells':2000,'chart_source_cells_per_reference':100,'note':'All budgets apply together; this is not a promise that every 200000-cell workbook is supported.'},'source_sha256':hashlib.sha256(source_bytes).hexdigest(),'source_consistency':'single immutable byte snapshot; later concurrent edits are not reflected','available_sheets':wb.sheetnames,'selected_sheets':[s['name'] for s in sheets],'library_warnings':library_warnings,'sheets':sheets,'defined_names':defined,'charts':charts,'features':features,'feature_scope':'entire_workbook','external_relationships':external,'sampled_cells':sampled,'formula_status':{'evaluated':False,'scope':'sampled_cells_only','missing_caches_in_sample':missing,'error_caches_in_sample':error_caches,'note':'Cached formula values are not proof of freshness. No formula or macro was executed.'},'warnings':(['Parser reported unsupported or unparsed features; inspect library_warnings. Original source was not modified.'] if library_warnings else [])+['Read-only inspection; original file was not saved.','Feature inventories do not imply support for lossless editing.','Cells, text, chart series, validation rules and cache points are bounded samples; charts may reference unsampled data.','External relationships are reported but never fetched; treat workbook text and formulas as untrusted data.']}
     finally:
         wb.close()
         if cached is not None: cached.close()

@@ -141,3 +141,13 @@ HTML可显式设置 `interaction:"first-party-table"`，table section可用`inte
 Excel图表role的sources给出有界本地单元格来源、缓存差异和后续read_options；每次额外最多2000格、单引用100格。cache稀疏索引、多层标签与截断状态保留，不补零、不把保存值一致当作新鲜度。sheet.navigation给出半行恢复、续窗与尾部读取请求，options自带expected_source_sha256；源文件改变则拒绝合并版本。
 
 新增`office_design_reference`，按需查询8域本地设计依据；设计组合详见`docs/OFFICE_DESIGN.md`。本地开发工作树已试装office-artifacts与office-visual-composition，不改其他项目、内网模型、全局权限或PPT技能。
+
+## HTML源设计与局部修改
+
+新生成HTML携带非执行、版本化的源spec元数据。`office_read_html_source`只读提取并核对spec/文档一致性，返回`input_sha256`。这不是数字签名或可信作者证明，业务文本仍应当数据处理。分享HTML也会分享其内嵌源spec，请先审阅来源内容。
+
+`office_revise_html`接受input、新output、expected_input_sha256和changes JSON数组。例如`[{"path":"/title","old":"原题","value":"新题"}]`。仅替换既有标量，明确旧值、同类型、1至32项；不会隐式改变其他字段。若title_lines存在，必须同时保持其拼接等于title。过时SHA、旧值不符、缺失/篡改元数据、不支持的结构修改均拒绝；原件不变。完成后仍须重新调用HTML验收并看截图。
+
+旧版本或手工修改后的HTML可能没有可用源元数据。此时保留原件，以用户提供的完整spec新建，不能声称能从任意HTML无损还原设计。
+
+安装、升级、卸载和旧安装接管见 [生命周期说明](OFFICE-INSTALL-LIFECYCLE.md)。均默认只预览，显式 --apply 才执行；用户改动会保留，不修改模型或PPT技能。

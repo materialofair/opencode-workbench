@@ -248,6 +248,17 @@ async function executeOffice(root, request, signal) {
   });
 }
 var OfficeArtifacts = async (ctx) => ({ tool: {
+  office_read_html_source: tool({ description: "Read a versioned source spec from an engine-generated HTML file. Verifies embedded spec/document consistency, NOT author identity. Hand-edited or legacy HTML may be unsupported. No browser or script execution.", args: { input: tool.schema.string().max(4096) }, execute: async (args, context) => {
+    await context.ask({ permission: "read", patterns: [args.input], always: [], metadata: { operation: "office_read_html_source" } });
+    return executeOffice(ctx.directory, { operation: "read_html_source", input: args.input }, context.abort);
+  } }),
+  office_revise_html: tool({ description: "Revise an engine-generated HTML into a NEW file using 1..32 exact old-value scalar replacements. Requires source SHA from office_read_html_source. Does not overwrite or execute HTML. Review returned changes, then validate and visually review the new artifact.", args: { input: tool.schema.string().max(4096), output: tool.schema.string().max(4096), expected_input_sha256: tool.schema.string().regex(/^[a-f0-9]{64}$/), changes: tool.schema.string().max(750000).describe("JSON array of {path,old,value}; JSON Pointer to existing scalar, same type, exact old value. No array/object insertion or deletion.") }, execute: async (args, context) => {
+    await context.ask({ permission: "read", patterns: [args.input], always: [], metadata: { operation: "office_revise_html" } });
+    if (context.abort.aborted)
+      throw new Error("Office operation cancelled");
+    await context.ask({ permission: "edit", patterns: [args.output], always: [], metadata: { operation: "office_revise_html" } });
+    return executeOffice(ctx.directory, { operation: "revise_html", input: args.input, output: args.output, expected_input_sha256: args.expected_input_sha256, changes: JSON.parse(args.changes) }, context.abort);
+  } }),
   office_design_reference: tool({ description: "Search pinned local design references for composition, typography, color, charts or usability. No network, font downloads or file writes. Results are suggestions with provenance, never an aesthetic score.", args: { query: tool.schema.string().min(1).max(256), domain: tool.schema.enum(["style", "color", "chart", "typography", "landing", "product", "ux", "web"]), limit: tool.schema.number().int().min(1).max(5).default(3) }, execute: async (args, context) => executeOffice(ctx.directory, { operation: "design_reference", query: args.query, domain: args.domain, limit: args.limit }, context.abort) }),
   office_validate_html: tool({ description: "Validate project HTML in fresh offline Chromium contexts. Static mode disables page JavaScript; opt-in first-party-table permits only the pinned local table runtime after strict preflight and external CSP enforcement. Arbitrary scripts unsupported. NEW evidence directory; not an OS sandbox or aesthetic acceptance.", args: { input: tool.schema.string().max(4096), output: tool.schema.string().max(4096).describe("New project-relative evidence directory; parent must exist"), mode: tool.schema.enum(["static", "first-party-table"]).default("static") }, execute: async (args, context) => {
     validateHtmlPaths(ctx.directory, args.input, args.output);
@@ -257,7 +268,7 @@ var OfficeArtifacts = async (ctx) => ({ tool: {
     await context.ask({ permission: "edit", patterns: [args.output + "/**"], always: [], metadata: { operation: "office_validate_html" } });
     return executeHtmlValidation(ctx.directory, args.input, args.output, context.abort, args.mode);
   } }),
-  office_capabilities: tool({ description: "Read the local versioned office protocol, supported fields and complete runnable examples BEFORE generating specs. No project files or network access.", args: { topic: tool.schema.enum(["overview", "inspect", "excel", "html", "design"]).default("overview"), example: tool.schema.enum(["dashboard", "research", "project", "comparison", "operations"]).optional() }, execute: async (args) => {
+  office_capabilities: tool({ description: "Read the local versioned office protocol, supported fields and complete runnable examples BEFORE generating specs. No project files or network access.", args: { topic: tool.schema.enum(["overview", "inspect", "excel", "html", "design", "revision"]).default("overview"), example: tool.schema.enum(["dashboard", "research", "project", "comparison", "operations"]).optional() }, execute: async (args) => {
     const protocol = JSON.parse(readFileSync2(join2(engine, "capabilities.json"), "utf8"));
     const result = args.topic === "overview" ? protocol : { protocol_version: protocol.protocol_version, [args.topic]: protocol[args.topic], shared_chart: protocol.shared_chart, outputs: protocol.outputs };
     if (args.example)

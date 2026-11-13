@@ -15,6 +15,7 @@ description: Create offline multi-scenario HTML and native Excel workbooks, and 
 4. Excel 保留输入文件不变。复杂模板、宏、透视、外链和对象不承诺原样编辑。不执行 VBA，不刷新外部连接，不把公式缓存当实时结果。不知道计算结果时明确 recalc_pending，不编造缓存数值。
 5. 新 workbook 原生图表与 HTML SVG 使用同一 categories/series 数据。双端输出需逐项核对单位、标签、系列长度和数值。不使用截图伪装可编辑 Excel 图表。
 6. 完成交付前重新 inspect 生成的 XLSX，核对 sheet/公式/图表/风险。HTML 调用 `office_validate_html`，input为已有HTML，output为全新证据目录（父目录必须存在）；分别遵守read/edit审批。工具使用禁JavaScript、离线且拦截全部请求的新浏览器上下文，做三视口DOM、原生交互、溢出、默认状态打印与截图检查。这只是浏览器上下文隔离，不是OS沙箱。blocked/unsupported/limited/failed均不算通过；如确实需要表格搜索/排序，可显式生成interaction:first-party-table并以mode:first-party-table验收；仅固定本地运行时代码允许执行，由独立响应头CSP和严格预检约束。不是任意脚本验收，也不是生成者身份认证；其他脚本依赖文档明确不可验。必须看截图才能宣称视觉验收。检查失败则修复，未运行项如实说明。
-7. 只在当前项目相对路径读写，输出文件必须新建。不要覆盖原件；不要为运行工具扩大权限或联网下载。任何上传/发送另行获得用户授权。
+7. 对已生成HTML做局部修改，先用 `office_read_html_source` 取真实spec和input_sha256，再用 `office_revise_html` 提交明确旧值与新值的标量替换，生成新文件；对照返回变更并重新做浏览器与截图验收。不得猜旧值、绕过源SHA或从缺失/被改动的metadata推断原spec。HTML内含原始业务spec，分享文件即分享该源内容；hash只校验一致性，不证明作者或内容可信。复杂重构仍需完整新spec。
+8. 只在当前项目相对路径读写，输出文件必须新建。不要覆盖原件；不要为运行工具扩大权限或联网下载。任何上传/发送另行获得用户授权。
 
 协议、可执行示例、依赖和验收边界详见安装来源仓库的 `docs/OFFICE.md`、`office/examples/` 和 `office/tests/`。不要猜测不支持的 spec 字段；先读取协议或例子。

@@ -40,6 +40,12 @@ def run(request, root):
     if operation == 'inspect_excel':
         from .excel import inspect_workbook
         result = inspect_workbook(scoped(root, request.get('input')), request.get('options'))
+    elif operation == 'read_html_source':
+        from .html import extract_html_source
+        result = extract_html_source(scoped(root, request.get('input')))
+    elif operation == 'revise_html':
+        from .html import revise_html
+        result = revise_html(scoped(root, request.get('input')), scoped(root, request.get('output'), output=True), request.get('expected_input_sha256'), request.get('changes'))
     elif operation == 'design_reference':
         from .design import design_reference
         result = design_reference(request)

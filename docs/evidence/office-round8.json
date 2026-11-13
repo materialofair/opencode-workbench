@@ -1,0 +1,183 @@
+{
+  "date": "2026-11-13",
+  "source_sha256": {
+    "adapters/office/plugin.ts": "20c27ef7a5350570e660a211ea54082511cddb13abda44c701e5f40681e941ec",
+    "office/office_engine/html.py": "521f4e0a0958348a9a0d42daebfa1f3cc9688731d433773d66324888817e2640",
+    "office/office_engine/excel.py": "1197d3882d1e8634c1c04353cb5c099961bc17d0cf9200d4fef6c7ae2458002f",
+    "office/office_engine/__main__.py": "2dd5570a2a728e59b44209370503eb9268783c81c56b0a4a4ea067dd12b8e975",
+    "scripts/install-office.ts": "49426cb68d9c3589afb886be80f1581b83f542e3e79a208cc15f0537e2ae41c4",
+    "scripts/integration-office.ts": "dbb213e51a626b2d68d2c319aef90c66ecb575893a64ea97113f86772da0034d",
+    "office/capabilities.json": "44505af27d42e21393d2f47d5fec8bf6eec9ae9e393bc9566d9cb677ef0f55cf"
+  },
+  "regression": {
+    "bun_passed": 104,
+    "bun_skipped": 1,
+    "bun_failed": 0,
+    "skip": "Windows-native ACL case on macOS",
+    "python_passed": 127,
+    "python_failed": 0,
+    "typecheck": "passed",
+    "release_audit_findings": 0
+  },
+  "real_host": {
+    "static": {
+      "success": true,
+      "real_backend": true,
+      "real_model": false,
+      "model_requests": 7,
+      "registered_tools": [
+        "office_read_html_source",
+        "office_revise_html",
+        "office_design_reference",
+        "office_validate_html",
+        "office_capabilities",
+        "office_inspect_excel",
+        "office_generate_excel",
+        "office_render_html"
+      ],
+      "validation_passed": true,
+      "model_skill_discovery": {
+        "name": "skill",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the skill from available_skills"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        },
+        "descriptions_visible": [
+          "office-artifacts",
+          "office-visual-composition"
+        ],
+        "catalog_in_system_messages": true
+      },
+      "observed_tool_results": [
+        {
+          "name": "skill",
+          "args": {
+            "name": "office-artifacts"
+          }
+        },
+        {
+          "name": "skill",
+          "args": {
+            "name": "office-visual-composition"
+          }
+        },
+        {
+          "name": "office_capabilities"
+        },
+        {
+          "name": "office_design_reference"
+        },
+        {
+          "name": "office_render_html"
+        },
+        {
+          "name": "office_validate_html"
+        }
+      ]
+    },
+    "excel_to_interactive": {
+      "success": true,
+      "real_backend": true,
+      "real_model": false,
+      "model_requests": 8,
+      "registered_tools": [
+        "office_read_html_source",
+        "office_revise_html",
+        "office_design_reference",
+        "office_validate_html",
+        "office_capabilities",
+        "office_inspect_excel",
+        "office_generate_excel",
+        "office_render_html"
+      ],
+      "validation_passed": true,
+      "model_skill_discovery": {
+        "name": "skill",
+        "parameters": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the skill from available_skills"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        },
+        "descriptions_visible": [
+          "office-artifacts",
+          "office-visual-composition"
+        ],
+        "catalog_in_system_messages": true
+      },
+      "observed_tool_results": [
+        {
+          "name": "skill",
+          "args": {
+            "name": "office-artifacts"
+          }
+        },
+        {
+          "name": "skill",
+          "args": {
+            "name": "office-visual-composition"
+          }
+        },
+        {
+          "name": "office_capabilities"
+        },
+        {
+          "name": "office_design_reference"
+        },
+        {
+          "name": "office_inspect_excel"
+        },
+        {
+          "name": "office_render_html"
+        },
+        {
+          "name": "office_validate_html"
+        }
+      ]
+    },
+    "boundary": "Real OpenCode and installed project skills with deterministic mock model; validates discovery, permissions, dataflow and tool outputs, NOT autonomous GLM planning or aesthetic judgment."
+  },
+  "installation": {
+    "lifecycle_tests_passed": 10,
+    "scope": "Temporary projects only; default dry-run; fixed-path ownership hashes; modified files protected; explicit legacy adoption; staged writes and best-effort rollback",
+    "limits": "Linked source remains a live runtime dependency; not crash-atomic or hostile concurrent-writer protection. No actual company or Windows installation tested."
+  },
+  "html_revision": {
+    "new_python_tests": 10,
+    "adapter_tests": 2,
+    "static_and_fixed_interactive_qa": "passed",
+    "constraints": "New source meta is non-executing; exact current-engine consistency check is not authentication. Read/source SHA then 1..32 old-value-tested whitelisted scalar replacements, new output only, requires fresh QA/visual review. Legacy/manual/previous renderer pages may be unsupported. Shared HTML includes source spec."
+  },
+  "excel_reliability": {
+    "related_tests_passed": 74,
+    "new_regressions": 5,
+    "public_poi_corpus_passed": 15,
+    "fixes": [
+      "Formula error caches and error cells explicitly separated from ordinary values",
+      "Duplicate/invalid/out-of-range cache indices prevent comparison rather than silently overwriting",
+      "Error and ambiguous counts surfaced in summary"
+    ],
+    "limits": "No formula calculation, cache freshness guarantee, macro execution or lossless template editing"
+  },
+  "remaining_acceptance_gates": [
+    "Company-approved GLM5.3 task runs with representative natural-language requests and user permissions",
+    "Authorized representative complex business workbooks and target typography/visual acceptance",
+    "Target intranet dependency/runtime deployment and Windows-native tests if required"
+  ]
+}

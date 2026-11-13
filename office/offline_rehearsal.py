@@ -68,7 +68,7 @@ def main():
         run('typecheck',['bun','run','typecheck'])
         env['PYTHONPATH']=str(repo/'office')
         run('python-tests',[str(python),'-m','unittest','discover','-s','office/tests','-v'])
-        run('tool-tests',['bun','test','./tests/office.test.ts','./tests/office-design-tool.test.ts','./tests/office-design-install.test.ts'])
+        run('tool-tests',['bun','test','./tests/office.test.ts','./tests/office-design-tool.test.ts','./tests/office-design-install.test.ts','./tests/office-revision.test.ts','./tests/office-install-lifecycle.test.ts'])
         if args.browser_qa:
             run('browser-tool-tests',['bun','test','./tests/office-html-qa.test.ts','./tests/office-validate-tool.test.ts','./tests/office-table-runtime.test.ts'])
         trial=out/'trial-project';trial.mkdir()

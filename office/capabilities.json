@@ -36,7 +36,8 @@
       "navigation": "sheets[].page_id identifies snapshot/window/sample. sheets[].navigation.continuations[] and tail_read supply purpose, options, expected_source_sha256 and request_id. Call the same input with options directly. Finish partial-row/window requests before advancing; independent directions are not a single cursor.",
       "chart_sources": "charts[].plots[].series[].{name,categories,values,x_values,y_values,bubble_size}.sources[] resolve explicit local A1 ranges to bounded source points with cell addresses, stored values/formulas, source_reliability, chart_cache_comparison and read_request.options. Named expressions, unions and external references remain explicit unresolved; no formula evaluation.",
       "cache_semantics": "Cache point indices/gaps/empty states and multilevel_caches preserve hierarchy. Equality means stored representations only, never freshness. Truncated cache comparisons are not_comparable; source display truncation is explicit.",
-      "summary": "Readable summary aggregates chart-source comparisons, missing caches and actionable limitations; it does not imply unsampled cells were reviewed."
+      "summary": "Readable summary aggregates chart-source comparisons, missing caches and actionable limitations; it does not imply unsampled cells were reviewed.",
+      "error_values": "Excel error cells and formula error caches remain explicit errors, not ordinary strings or verified numbers. Invalid/duplicate/out-of-range chart cache indices make comparisons not_comparable; no last-entry-wins inference."
     }
   },
   "excel": {
@@ -239,5 +240,28 @@
     "workflow": "Use installed office-visual-composition skill: brief, compare two content/layout plans, choose deliberate tokens, source/chart narrative, render, actual screenshot critique and revision. Local references inform decisions but never replace visual judgment.",
     "outputs": "Bounded local catalog matches with repository commit and CSV hashes; no-match is explicit. External font/CDN/asset loading fields are removed; system CJK fallbacks only.",
     "limits": "No persist, arbitrary paths, network, installers, external fonts, telemetry or automatic aesthetic score. visual_review stays pending-human-review until actual images are reviewed."
+  },
+  "revision": {
+    "tools": [
+      "office_read_html_source",
+      "office_revise_html"
+    ],
+    "workflow": "Read embedded source, obtain input_sha256 and exact current scalar values; request explicit replacements into a NEW output; inspect changes, run office_validate_html and review screenshots again. No browser/script execution during extraction/revision.",
+    "source": "Non-executing versioned metadata in newly generated HTML. Hashes verify consistency, NOT author identity or trusted content. Legacy/missing/tampered metadata is unsupported; do not infer an original spec. Current engine must reproduce the complete file byte-for-byte; previous engine versions may be unsupported after upgrade.",
+    "changes": "JSON array of 1..32 {path,old,value}. Whitelisted existing content scalars only: top-level title/subtitle/eyebrow/period/footer/title_lines; section titles/body/caption; table headers/cells; KPI/timeline/source item content; chart title/unit/categories/series names/values; board titles/items. Same type and exact old value. Scenario, roles, widths, source IDs and interaction cannot change here. No duplicate/ancestor paths or structural edits.",
+    "expected_input_sha256": "Required exact current input SHA256 from office_read_html_source; stale input rejects before output write.",
+    "example": {
+      "input": "report.html",
+      "output": "report-v2.html",
+      "expected_input_sha256": "<64-hex SHA from read tool>",
+      "changes": [
+        {
+          "path": "/title",
+          "old": "Original",
+          "value": "Revised"
+        }
+      ]
+    },
+    "limitations": "Stored spec may contain source business text; sharing HTML also shares its embedded source. Existing files are never overwritten. Non-scalar restructuring requires full new spec and independent review."
   }
 }

@@ -1,6 +1,8 @@
 """Offline, escaped, data-first office document renderer. No model or network calls."""
 from __future__ import annotations
 import hashlib
+import base64
+import copy
 import html
 import json
 import math
@@ -235,7 +237,7 @@ CSS += 'svg text{font-size:16px}.chart-scroll svg,.dashboard .main .chart-scroll
 
 CSS += '.pie-container{width:100%;max-width:360px;margin:12px auto}.pie-container svg{width:100%;min-width:0;max-height:320px}.pie-legend{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px 20px;font-size:14px}.pie-legend li{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:baseline;min-width:0}.pie-legend li span{overflow-wrap:anywhere}.pie-legend strong{font-weight:600;font-variant-numeric:tabular-nums}.pie-legend i{margin:0}@media print{.pie-container{max-width:240px}.pie-legend{font-size:11px}}'
 
-def render_html(spec, output):
+def _compose_html(spec):
     fields(spec, {'version', 'scenario', 'title', 'subtitle', 'eyebrow', 'period', 'footer', 'sections', 'interaction', 'title_lines'}, 'HTML spec')
     if type(spec.get('version')) is not int or spec.get('version') != 1:
         raise ValueError('HTML spec requires version 1')
@@ -321,24 +323,155 @@ def render_html(spec, output):
     label, accent = SCENARIOS[scenario]
     markup = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\'"><title>' + title + '</title><style>' + CSS.replace('ACCENT', accent) + '</style></head><body class="' + scenario + '"><a class="skip-link" href="#main-content">跳到正文</a><main class="shell" id="main-content"><header><div><div class="eyebrow">' + text(spec.get('eyebrow', label), 200) + '</div><h1>' + title_markup + '</h1><p class="subtitle">' + text(spec.get('subtitle', ''), 2000) + '</p></div><div class="stamp">' + text(spec.get('period', '内部资料 · 本地生成'), 200) + '</div></header><div class="document-body">' + toc + '<div class="layout">' + ''.join(rendered) + '</div></div><footer><span>' + text(spec.get('footer', '仅供内部使用 · 数据以业务来源为准'), 500) + '</span><span>OFFICE / ' + text(label) + '</span></footer></main></body></html>'
     if interaction == 'first-party-table':
-        import base64
         runtime = (Path(__file__).resolve().parents[1] / 'first-party-table.js').read_text(encoding='utf-8')
         runtime_hash = base64.b64encode(hashlib.sha256(runtime.encode()).digest()).decode()
         policy = "default-src 'none'; script-src 'sha256-" + runtime_hash + "'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'"
         markup = markup.replace("default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'", policy)
         markup = markup.replace('</body>', '<script>' + runtime + '</script></body>')
+    spec_bytes = _canonical(spec)
+    if len(spec_bytes) > MAX_SOURCE_SPEC:
+        raise ValueError('Embedded HTML source spec exceeds 750 KiB')
+    envelope = {'format_version': 1, 'spec': spec,
+                'spec_sha256': hashlib.sha256(spec_bytes).hexdigest(),
+                'document_sha256': hashlib.sha256(markup.encode('utf-8')).hexdigest()}
+    marker = META_PREFIX + base64.urlsafe_b64encode(_canonical(envelope)).decode('ascii') + META_SUFFIX
+    markup = markup.replace('</head>', marker + '</head>', 1)
+    if len(markup.encode('utf-8')) > MAX_HTML_BYTES:
+        raise ValueError('Rendered HTML exceeds 4 MiB including reusable source')
+    manifest = {'version': 1, 'scenario': scenario, 'sections': len(sections), 'charts': len(charts), 'chart_data_sha256': hashlib.sha256(json.dumps(charts, sort_keys=True, ensure_ascii=False).encode()).hexdigest(), 'sha256': hashlib.sha256(markup.encode()).hexdigest(), 'network_dependencies': [], 'interaction': interaction, 'qa': 'pending_browser_and_visual_review'}
+    manifest.update(source_format_version=1, spec_sha256=envelope['spec_sha256'], source_integrity='consistency_not_authentication')
+    return markup, manifest
+
+
+MAX_HTML_BYTES = 4 * 1024 * 1024
+MAX_SOURCE_SPEC = 750 * 1024
+META_PREFIX = '<meta name="office-source-v1" content="'
+META_SUFFIX = '">'
+
+
+def _canonical(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('utf-8')
+
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate source JSON key')
+        result[key] = value
+    return result
+
+
+def render_html(spec, output):
+    markup, manifest = _compose_html(spec)
     path = Path(output)
     if path.suffix.lower() != '.html':
         raise ValueError('Output must end with .html')
-    # Validation is complete before exclusive creation. Remove only our own file
-    # if a disk/encoding failure interrupts the write. Existing files stay untouched.
-    f = path.open('x', encoding='utf-8')
+    stream = path.open('x', encoding='utf-8', newline='')
     inode = path.stat().st_ino
     try:
-        with f:
-            f.write(markup)
+        with stream:
+            stream.write(markup)
     except BaseException:
         if path.exists() and path.stat().st_ino == inode:
             path.unlink()
         raise
-    return {'version': 1, 'artifact': str(path), 'scenario': scenario, 'sections': len(sections), 'charts': len(charts), 'chart_data_sha256': hashlib.sha256(json.dumps(charts, sort_keys=True, ensure_ascii=False).encode()).hexdigest(), 'sha256': hashlib.sha256(markup.encode()).hexdigest(), 'network_dependencies': [], 'interaction': interaction, 'qa': 'pending_browser_and_visual_review'}
+    return dict(manifest, artifact=str(path))
+
+
+def extract_html_source(input):
+    """Accept only byte-identical current-engine artifacts; hashes are not identity."""
+    path = Path(input)
+    if path.stat().st_size > MAX_HTML_BYTES:
+        raise ValueError('HTML source input exceeds 4 MiB')
+    with path.open('rb') as stream:
+        raw = stream.read(MAX_HTML_BYTES + 1)
+    if len(raw) > MAX_HTML_BYTES:
+        raise ValueError('HTML source input exceeds 4 MiB')
+    markup = raw.decode('utf-8', errors='strict')
+    if markup.count(META_PREFIX) != 1:
+        raise ValueError('Require exactly one canonical office source meta; legacy/manual HTML is unsupported')
+    start = markup.index(META_PREFIX)
+    end = markup.find(META_SUFFIX, start + len(META_PREFIX))
+    if end < 0:
+        raise ValueError('Malformed office source meta')
+    encoded = markup[start + len(META_PREFIX):end]
+    if len(encoded) > (MAX_SOURCE_SPEC + 1024) * 4 // 3 + 4 or not re.fullmatch(r'[A-Za-z0-9_-]+={0,2}', encoded):
+        raise ValueError('Oversized or invalid office source encoding')
+    decoded = base64.b64decode(encoded, altchars=b'-_', validate=True)
+    envelope = json.loads(decoded.decode('utf-8', errors='strict'), object_pairs_hook=_unique_object,
+                          parse_constant=lambda _: (_ for _ in ()).throw(ValueError('Non-finite source JSON')))
+    if _canonical(envelope) != decoded or base64.urlsafe_b64encode(decoded).decode('ascii') != encoded:
+        raise ValueError('Office source envelope is not canonical')
+    fields(envelope, {'format_version', 'spec', 'spec_sha256', 'document_sha256'}, 'Source envelope')
+    if set(envelope) != {'format_version', 'spec', 'spec_sha256', 'document_sha256'} or type(envelope['format_version']) is not int or envelope['format_version'] != 1:
+        raise ValueError('Unsupported source format version')
+    spec = envelope['spec'];spec_bytes = _canonical(spec)
+    if len(spec_bytes) > MAX_SOURCE_SPEC or hashlib.sha256(spec_bytes).hexdigest() != envelope['spec_sha256']:
+        raise ValueError('Source spec size or SHA256 mismatch')
+    stripped = markup[:start] + markup[end + len(META_SUFFIX):]
+    if hashlib.sha256(stripped.encode('utf-8')).hexdigest() != envelope['document_sha256']:
+        raise ValueError('Source document SHA256 mismatch; manual edits are unsupported')
+    rebuilt, _ = _compose_html(spec)
+    if rebuilt.encode('utf-8') != raw:
+        raise ValueError('Source is not an unchanged artifact of the current engine')
+    return {'version': 1, 'spec': spec, 'input_sha256': hashlib.sha256(raw).hexdigest(),
+            'spec_sha256': envelope['spec_sha256'], 'source_integrity': 'consistency_not_authentication',
+            'current_engine_match': True}
+
+
+_EDITABLE = re.compile(r'^/(?:title|subtitle|eyebrow|period|footer|title_lines/(?:0|[1-9][0-9]*)|sections/(?:0|[1-9][0-9]*)/(?:title|caption|body|headers/[0-9]+|rows/[0-9]+/[0-9]+|items/[0-9]+/(?:label|value|note|date|title|body|publisher|url)|chart/(?:title|unit|categories/[0-9]+|series/[0-9]+/(?:name|values/[0-9]+))|columns/[0-9]+/(?:title|items/[0-9]+/(?:title|body|tag))))$')
+
+
+def _scalar_kind(value):
+    if value is None: return 'null'
+    if type(value) is bool: return 'boolean'
+    if isinstance(value, str): return 'string'
+    if type(value) in (int, float):
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError('Changes require finite numbers')
+        return 'number'
+    raise ValueError('Changes may replace existing scalars only')
+
+
+def revise_html(input, output, expected_input_sha256, changes):
+    source = extract_html_source(input)
+    if not isinstance(expected_input_sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', expected_input_sha256) or expected_input_sha256 != source['input_sha256']:
+        raise ValueError('Input SHA256 changed; inspect source again before revising')
+    if not isinstance(changes, list) or not 1 <= len(changes) <= 32:
+        raise ValueError('Revision requires 1..32 changes')
+    spec = copy.deepcopy(source['spec']);seen = set();diffs = []
+    for change in changes:
+        fields(change, {'path', 'old', 'value'}, 'Change')
+        if set(change) != {'path', 'old', 'value'}:
+            raise ValueError('Each change requires path, old and value')
+        pointer = change['path']
+        if not isinstance(pointer, str) or len(pointer) > 256 or not _EDITABLE.fullmatch(pointer):
+            raise ValueError('Path is outside the editable content whitelist')
+        if any(pointer == other or pointer.startswith(other + '/') or other.startswith(pointer + '/') for other in seen):
+            raise ValueError('Duplicate or ancestor change paths')
+        seen.add(pointer);tokens = pointer.split('/')[1:];parent = spec
+        for token in tokens[:-1]:
+            if isinstance(parent, list):
+                if not re.fullmatch(r'0|[1-9][0-9]*', token) or int(token) >= len(parent):
+                    raise ValueError('Change path index does not exist')
+                parent = parent[int(token)]
+            elif isinstance(parent, dict) and token in parent: parent = parent[token]
+            else: raise ValueError('Change path does not exist')
+        key = tokens[-1]
+        if isinstance(parent, list):
+            if not re.fullmatch(r'0|[1-9][0-9]*', key) or int(key) >= len(parent):
+                raise ValueError('Change path index does not exist')
+            key = int(key)
+        elif not isinstance(parent, dict) or key not in parent:
+            raise ValueError('Change path does not exist')
+        before = parent[key];kind = _scalar_kind(before)
+        if _scalar_kind(change['old']) != kind or change['old'] != before:
+            raise ValueError('Old value test failed at ' + pointer)
+        if _scalar_kind(change['value']) != kind:
+            raise ValueError('Replacement must retain the scalar type at ' + pointer)
+        parent[key] = change['value'];diffs.append({'path': pointer, 'old': before, 'value': change['value']})
+    result = render_html(spec, output)
+    result.update(input_sha256=source['input_sha256'], previous_spec_sha256=source['spec_sha256'],
+                  changes=diffs, change_scope='only_explicit_existing_content_scalars', qa='pending_browser_and_visual_review')
+    return result
