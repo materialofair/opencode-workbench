@@ -57,5 +57,15 @@
       "No intranet GLM, Windows native, or production business acceptance"
     ]
   },
-  "synthetic_examples": true
+  "synthetic_examples": true,
+  "offline_rehearsal": {
+    "source_commit": "692029250ac88f6f7f6eae66869096149e31b5af",
+    "success": true,
+    "stages_passed": 12,
+    "npm_mode": "--offline --ignore-scripts",
+    "pip_mode": "--no-index --require-hashes",
+    "isolated_config_home": true,
+    "archive_sha256": "c8da139b21a9d646793fa381c0db2930f614265f58a05a8ffbd8744ca52df7de",
+    "scope": "Developer offline package-manager rehearsal; not target intranet or network-isolation certification"
+  }
 }
