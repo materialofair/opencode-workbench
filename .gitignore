@@ -17,3 +17,9 @@ playwright-report/
 .omo/
 
 *.bun-build
+
+# Optional office artifact engine local environment and QA
+/office/.venv/
+/office/wheelhouse/
+/office/evidence/
+__pycache__/

@@ -108,3 +108,7 @@ bun run scan:release
 对 OpenCode 说「只读识别这台电脑已有的定时任务并预览导入」，使用 `import-scheduled-tasks` Skill。先核实实际来源、项目、时区与执行语义，再调用 `import_scheduled_tasks` 工具（默认 dry-run）；管理页也可粘贴统一清单进行预览。支持来源标识、可解释的重复/冲突检测、幂等提交，导入全部禁用且不修改旧调度。启用前须明确选择 Workbench 执行者，核实旧调度避免双重执行。未知插件、复杂 cron、launchd / Windows 执行上下文差异会阻止自动导入，不能把未知当作空任务。详见 [导入接口与转换边界](docs/IMPORT_TASKS.md)。
 
 其他电脑首次部署、依赖检查和分层验收见 [新机器检查清单](docs/NEW_MACHINE.md)。
+
+## 可选：内网 HTML / Excel 办公引擎
+
+独立办公适配器提供协议发现、复杂 Excel 只读解析、新建原生图表工作簿，以及五场景离线 HTML。沿用当前 OpenCode 模型，不修改已有 HTML 转 PPT skill。先读 [办公引擎说明](docs/OFFICE.md) 和 [验证记录](docs/OFFICE_VERIFICATION.md)。macOS 本地示例可双击 `office/Preview.command`；安装器默认只预览，不自动安装到当前项目。

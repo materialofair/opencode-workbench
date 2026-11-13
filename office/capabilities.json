@@ -1,0 +1,176 @@
+{
+  "protocol_version": 1,
+  "offline": true,
+  "model_configuration": "Uses existing OpenCode model; no API credentials or provider changes",
+  "inspect": {
+    "tool": "office_inspect_excel",
+    "input": "Project-relative .xlsx/.xlsm/.xltx/.xltm path",
+    "options": {
+      "sheets": "Optional exact sheet-name array",
+      "start_row": "1-based first row, default 1",
+      "start_col": "1-based first column, default 1",
+      "max_rows": "1..2000, default 100",
+      "max_cols": "1..200, default 50",
+      "max_cells": "1..100000, default 10000; shared budget across selected sheets",
+      "max_cell_chars": "1..32767, default 1000"
+    },
+    "workflow": "Inspect available_sheets first; then use sheets and start_row/start_col to retrieve later windows. Check requested/sample ranges and truncation. Cache freshness is never verified."
+  },
+  "excel": {
+    "tool": "office_generate_excel",
+    "spec": {
+      "sheets": "Array of sheet objects",
+      "charts": "Optional shared charts; each creates a ChartDataN sheet"
+    },
+    "sheet": {
+      "name": "Unique Excel sheet name",
+      "rows": "2D array of primitive cells or cell objects",
+      "freeze": "[row,col], zero-based",
+      "autofilter": "boolean",
+      "columns": "Array of {width,format?}",
+      "charts": "Array of native chart objects",
+      "header": "boolean, default true; applies header-row styling to row 1",
+      "merges": "Array of merge objects; overlapping populated cells are rejected",
+      "validations": "Array of literal-list validation objects",
+      "conditional_formats": "Array of conditional-format objects"
+    },
+    "cell": {
+      "value": "string|number|boolean|null",
+      "format": "header|integer|number|percent|currency|date|wrap|total; date is formatting of Excel serial numbers, not string-to-date conversion",
+      "formula": "Explicit allowed formula string, mutually used instead of value",
+      "cached": "string|finite number|boolean; caller-supplied and unverified; absent writes blank cache and marks recalc_pending"
+    },
+    "native_chart": {
+      "type": "bar|column|line|pie|scatter|area",
+      "title": "optional text",
+      "unit": "optional Y-axis title for non-pie charts; not a number format",
+      "anchor": "optional Excel cell such as H2 (default H2)",
+      "series": "Array of 1..20 native_series objects; unknown fields are rejected"
+    },
+    "limits": "New files only. No existing workbook rewriting; no formula evaluation, macros or external links. No implicit stacked/secondary-axis options. Unknown fields are rejected at every spec/object level. Native pie requires one series.",
+    "example": {
+      "sheets": [
+        {
+          "name": "Budget",
+          "rows": [
+            [
+              "Month",
+              "Actual",
+              "Budget",
+              "Variance"
+            ],
+            [
+              "Jan",
+              120,
+              130,
+              {
+                "formula": "=B2-C2",
+                "cached": -10
+              }
+            ]
+          ],
+          "freeze": [
+            1,
+            0
+          ],
+          "autofilter": true
+        }
+      ],
+      "charts": [
+        {
+          "type": "bar",
+          "title": "Quarterly example",
+          "unit": "万元",
+          "categories": [
+            "Q1",
+            "Q2"
+          ],
+          "series": [
+            {
+              "name": "Actual",
+              "values": [
+                120,
+                155
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "column": {
+      "width": "optional number 1..100, default 18",
+      "format": "optional named cell format"
+    },
+    "merge": {
+      "range": "[r1,c1,r2,c2], zero-based inclusive within supplied rows; must span at least 2 cells",
+      "value": "optional text, default empty string; replaces upper-left value",
+      "format": "optional named format, default header"
+    },
+    "validation": {
+      "range": "[r1,c1,r2,c2], zero-based inclusive within supplied rows",
+      "values": "nonempty string array; total literal list length including separators <=255 characters; list validation only; commas and double quotes within individual values are rejected"
+    },
+    "conditional_format": {
+      "range": "[r1,c1,r2,c2], zero-based inclusive within supplied rows",
+      "type": "3_color_scale|2_color_scale|data_bar"
+    },
+    "native_series": {
+      "name": "optional literal text, not an Excel formula",
+      "categories": "[sheet,r1,c1,r2,c2], zero-based inclusive one-dimensional range within supplied data; scatter X requires numeric values or explicit numeric formula caches",
+      "values": "same format as categories and same length; scatter uses categories as X and values as Y; values must be numbers, blanks or pending formulas; pie requires known nonnegative numbers with positive total"
+    },
+    "formula_functions": "SUM AVERAGE MIN MAX COUNT COUNTA COUNTIF COUNTIFS SUMIF SUMIFS IF IFS IFERROR AND OR NOT ROUND ROUNDUP ROUNDDOWN ABS MOD INT SUBTOTAL SUMPRODUCT INDEX MATCH XLOOKUP VLOOKUP HLOOKUP LEFT RIGHT MID LEN TRIM CONCAT CONCATENATE TEXT DATE YEAR MONTH DAY EOMONTH TODAY",
+    "resource_limits": {
+      "generation": "1..50 total sheets, <=100000 rectangular data cells, <=20 native charts per sheet, <=20 shared charts",
+      "inspection": "64 MiB archive, 128 MiB total expansion, 32 MiB per part, <=5000 members, <=200000 stored cells plus merged expansion, <=100 worksheets"
+    },
+    "not_generated": "Pivot tables, macros, embedded pictures, external links, stacked/combined/secondary-axis/date-axis charts, hidden sheets and existing-template edits are not generated. Their inspection support does not imply generation or fidelity support."
+  },
+  "html": {
+    "tool": "office_render_html",
+    "spec": {
+      "version": 1,
+      "scenario": "dashboard|research|project|comparison|operations",
+      "title": "required text",
+      "subtitle": "optional",
+      "period": "optional",
+      "eyebrow": "optional",
+      "footer": "optional",
+      "sections": "Nonempty array"
+    },
+    "section_common": {
+      "type": "kpis|table|timeline|chart|callout|text|board",
+      "title": "optional",
+      "width": "full|half"
+    },
+    "section_fields": {
+      "kpis": "items:[{label,value,note?}], textual values",
+      "table": "headers:[string],rows:[[primitive]],caption?",
+      "timeline": "items:[{date,title,body?}]",
+      "chart": "chart: shared_chart",
+      "callout": "body:string",
+      "text": "body:string",
+      "board": "columns:[{title,items:[{title,body?,tag?}]}]"
+    },
+    "examples": "Use office_capabilities(topic=html, example=SCENARIO) for a complete runnable example."
+  },
+  "shared_chart": {
+    "type": "bar|line|pie",
+    "title": "text",
+    "unit": "optional text",
+    "categories": "string array",
+    "series": "[{name:string,values:finite-number-array}], matching category lengths",
+    "semantics": "bar is vertical in both outputs; pie requires exactly one nonnegative series with positive sum"
+  },
+  "outputs": "Project-relative new filenames only; parent directory exists. Spec/options passed to tools as JSON strings. Always inspect generated Excel and run HTML QA before final delivery.",
+  "not_supported": [
+    "PPT conversion (existing user skill remains separate)",
+    "XLS/XLSB",
+    "encrypted workbooks",
+    "formula evaluation",
+    "lossless arbitrary workbook editing",
+    "macro execution",
+    "network refresh",
+    "automatic publication"
+  ]
+}

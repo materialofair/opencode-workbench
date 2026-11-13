@@ -1,0 +1,26 @@
+{
+  "python": "3.10+",
+  "wheel_tags": "pure Python universal wheels",
+  "files": [
+    {
+      "file": "defusedxml-0.7.1-py2.py3-none-any.whl",
+      "bytes": 25604,
+      "sha256": "a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+    },
+    {
+      "file": "et_xmlfile-2.0.0-py3-none-any.whl",
+      "bytes": 18059,
+      "sha256": "7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa"
+    },
+    {
+      "file": "openpyxl-3.1.5-py2.py3-none-any.whl",
+      "bytes": 250910,
+      "sha256": "5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2"
+    },
+    {
+      "file": "xlsxwriter-3.2.9-py3-none-any.whl",
+      "bytes": 175315,
+      "sha256": "9a5db42bc5dff014806c58a20b9eae7322a134abb6fce3c92c181bfb275ec5b3"
+    }
+  ]
+}

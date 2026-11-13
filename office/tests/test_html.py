@@ -1,0 +1,93 @@
+import copy
+import tempfile
+import unittest
+from pathlib import Path
+from office_engine.html import render_html
+
+class HtmlTests(unittest.TestCase):
+    def spec(self):
+        return {'version':1,'scenario':'dashboard','title':'季度经营报告','sections':[{'type':'chart','chart':{'type':'bar','title':'收入','categories':['一月','二月'],'series':[{'name':'实际','values':[30,-5]},{'name':'预算','values':[25,35]}]}}]}
+    def render(self,spec):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'out.html'
+            result=render_html(spec,p)
+            return result,p.read_text()
+    def test_all_scenarios(self):
+        for scenario in ['dashboard','research','project','comparison','operations']:
+            s=self.spec();s['scenario']=scenario
+            result,html=self.render(s)
+            self.assertEqual(result['scenario'],scenario)
+            self.assertIn('Content-Security-Policy',html)
+            self.assertIn('<svg',html)
+            self.assertIn('Chart data',html)
+            self.assertEqual(result['network_dependencies'],[])
+    def test_escaping(self):
+        s=self.spec();s['title']='</title><script>alert(1)</script>'
+        s['sections'].append({'type':'text','body':'<img src=https://evil.test onerror=alert(1)>'})
+        _,html=self.render(s)
+        self.assertNotIn('<script>',html)
+        self.assertNotIn('<img ',html)
+        self.assertIn('&lt;script&gt;',html)
+    def test_all_blocks(self):
+        s=self.spec();s['sections'] += [{'type':'kpis','items':[{'label':'完成率','value':'95%'}]},{'type':'table','headers':['部门','金额'],'rows':[['研发',3]]},{'type':'timeline','items':[{'date':'11月','title':'交付'}]},{'type':'callout','body':'待审批'},{'type':'board','columns':[{'title':'进行中','items':[{'title':'需求复核','tag':'研发'}]}]}]
+        _,html=self.render(s)
+        self.assertIn('需求复核',html)
+        self.assertIn('95%',html)
+    def test_no_overwrite(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'out.html';p.write_text('original')
+            with self.assertRaises(FileExistsError):render_html(self.spec(),p)
+            self.assertEqual(p.read_text(),'original')
+    def test_validation(self):
+        invalid=[]
+        s=self.spec();s['sections'][0]['chart']['series'][0]['values']=[float('nan'),2];invalid.append(s)
+        s=self.spec();s['sections'][0]['chart']['series'][0]['values']=[3];invalid.append(s)
+        s=self.spec();s['scenario']='../../evil';invalid.append(s)
+        s=self.spec();s['sections']=[{'type':'raw-html','body':'<script/>'}];invalid.append(s)
+        s=self.spec();s['sections']=[{'type':'table','headers':['one'],'rows':[['two','three']]}];invalid.append(s)
+        for s in invalid:
+            with self.assertRaises(ValueError):self.render(s)
+    def test_pie_and_line(self):
+        for kind in ['pie','line']:
+            s=self.spec();chart=s['sections'][0]['chart'];chart['type']=kind;chart['series']=[{'name':'收入','values':[30,70]}]
+            _,html=self.render(s);self.assertIn('<svg',html)
+    def test_invalid_spec_creates_no_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'out.html';s=self.spec();s['sections'].append({'type':'unsupported'})
+            with self.assertRaises(ValueError):render_html(s,p)
+            self.assertFalse(p.exists())
+    def test_chart_ids_are_unique(self):
+        s=self.spec();s['sections'].append(copy.deepcopy(s['sections'][0]))
+        _,html=self.render(s)
+        self.assertEqual(html.count('id="chart-0-title"'),1)
+        self.assertEqual(html.count('id="chart-1-title"'),1)
+    def test_empty_chart_and_table(self):
+        s=self.spec();s['sections']=[{'type':'chart','chart':{'type':'line','categories':[],'series':[]}},{'type':'table','headers':['数据'],'rows':[]}]
+        _,html=self.render(s)
+        self.assertIn('未将缺失数据解释为零',html)
+        self.assertIn('暂无记录',html)
+    def test_long_labels_preserved_in_data_table(self):
+        s=self.spec();label='长中文标签'*40
+        s['sections'][0]['chart']['categories']=[label,'普通']
+        _,html=self.render(s)
+        self.assertIn(label,html)
+    def test_negative_chart_zero_axis(self):
+        s=self.spec();chart=s['sections'][0]['chart'];chart['series']=[{'name':'负数','values':[-10,-20]}]
+        _,html=self.render(s)
+        self.assertIn('class="zero-axis" x1="72" y1="40.0"',html)
+        self.assertNotIn('height="-',html)
+        chart['series']=[{'name':'混合','values':[-10,10]}]
+        _,html=self.render(s)
+        self.assertIn('class="zero-axis" x1="72" y1="155.0"',html)
+    def test_comparison_example_arithmetic(self):
+        import json
+        spec=json.loads((Path(__file__).parents[1]/'examples/comparison.json').read_text())
+        rows=next(s['rows'] for s in spec['sections'] if s['type']=='table' and s['title'].startswith('评分矩阵'))
+        for col in range(2,5):
+            expected=sum(float(row[1].rstrip('%'))/100*row[col] for row in rows[:-1])
+            self.assertAlmostEqual(expected,rows[-1][col])
+    def test_zero_pie_rejected(self):
+        s=self.spec();s['sections'][0]['chart'].update(type='pie',series=[{'name':'x','values':[0,0]}])
+        with self.assertRaises(ValueError):self.render(s)
+
+if __name__=='__main__':unittest.main()
